@@ -1,0 +1,12 @@
+[general]
+name=Collision Analytics
+qgisMinimumVersion=3.16
+description=Dockable collision filtering and analytics dashboard for collision layers.
+version=1.0.0
+author=Shahram + ChatGPT (refactor)
+email=
+about=Filter collision points (selection or whole layer) and view summaries/charts. Field mapping + decode tables supported.
+tracker=
+repository=
+category=Analysis
+icon=
