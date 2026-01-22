@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# OS / Windows junk
+*:Zone.Identifier
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
