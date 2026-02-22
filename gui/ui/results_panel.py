@@ -24,9 +24,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core import charts as charts_mod
-from ..core.decodes import DecodeRegistry
-from ..core.utils import safe_str, to_datetime
+from ...core import charts as charts_mod
+from ...core.decodes import DecodeRegistry
+from ...core.utils import safe_str, to_datetime
 
 
 @dataclass

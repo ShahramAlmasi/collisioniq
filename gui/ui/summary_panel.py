@@ -16,8 +16,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.decodes import DecodeRegistry
-from ..core.utils import safe_str
+from ...core.decodes import DecodeRegistry
+from ...core.utils import safe_str
 
 
 class SummaryPanel(QWidget):

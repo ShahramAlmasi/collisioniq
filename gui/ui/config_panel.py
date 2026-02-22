@@ -24,11 +24,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.config import DEFAULT_FIELD_MAP
-from ..core.decodes import DecodeRegistry
+from ...core.config import DEFAULT_FIELD_MAP
+from ...core.decodes import DecodeRegistry
 
 if TYPE_CHECKING:
-    from ..core.config_manager import ConfigManager
+    from ...core.config_manager import ConfigManager
 
 
 class ConfigPanel(QWidget):
