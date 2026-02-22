@@ -56,6 +56,7 @@ class CollisionAnalyticsDockWidget(QDockWidget):
         self.field_map: Dict[str, str] = dict(self.config_mgr.field_map)
         self.filtered_fids: List[int] = []
         self.filtered_rows: List[Dict[str, Any]] = []
+        self._setting_idle = False  # Guard against recursion
         
         self._build_ui()
         self._connect_signals()
@@ -376,13 +377,21 @@ class CollisionAnalyticsDockWidget(QDockWidget):
     
     def _set_idle_state(self) -> None:
         """Set all panels to idle state."""
-        self.filtered_fids = []
-        self.filtered_rows = []
-        self.filter_badge.set_text("No filters")
-        self.filter_badge.set_variant("default")
-        self.filter_panel.reset_all_filters()
-        self.summary_panel._set_idle_state()
-        self.results_panel.set_idle_state()
+        # Guard against recursion from callbacks
+        if getattr(self, '_setting_idle', False):
+            return
+        self._setting_idle = True
+        
+        try:
+            self.filtered_fids = []
+            self.filtered_rows = []
+            self.filter_badge.set_text("No filters")
+            self.filter_badge.set_variant("default")
+            self.filter_panel.reset_all_filters()
+            self.summary_panel._set_idle_state()
+            self.results_panel.set_idle_state()
+        finally:
+            self._setting_idle = False
     
     def _show_about(self) -> None:
         """Show about panel."""
