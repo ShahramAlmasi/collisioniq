@@ -83,6 +83,7 @@ class SummaryPanel(QWidget):
         scroll.setWidget(content)
         
         layout.addWidget(scroll, 1)
+        self.content_scroll = scroll  # Store reference for visibility toggling
         
         # ===== Empty State =====
         self.empty_state = EmptyState(
@@ -454,6 +455,7 @@ class SummaryPanel(QWidget):
             return
         
         self.empty_state.setVisible(False)
+        self.content_scroll.setVisible(True)
         
         total = len(rows)
         fm = self.field_map
@@ -590,6 +592,7 @@ class SummaryPanel(QWidget):
     def _set_idle_state(self) -> None:
         """Reset to idle state."""
         self.empty_state.setVisible(True)
+        self.content_scroll.setVisible(False)
         
         self.kpi_total.set_value("—")
         self.kpi_fatal.set_value("—")

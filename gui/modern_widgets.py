@@ -28,25 +28,27 @@ from qgis.PyQt.QtWidgets import (
 # ============================================================================
 
 class Colors:
-    """Modern dark-mode color palette - GitHub-inspired."""
-    # Backgrounds
-    BG_PRIMARY = "#0d1117"      # Main background
-    BG_SECONDARY = "#161b22"    # Cards/panels
-    BG_RAISED = "#1c2433"       # Elevated surfaces, inputs, hover
+    """Modern dark-mode color palette - higher contrast for QGIS."""
+    # Backgrounds - lighter for better contrast
+    BG_PRIMARY = "#1a1f2e"      # Main background (was #0d1117)
+    BG_SECONDARY = "#242b3d"    # Cards/panels (was #161b22)
+    BG_RAISED = "#2d364a"       # Elevated surfaces, inputs, hover (was #1c2433)
     
-    # Text
-    TEXT_PRIMARY = "#f0f6fc"    # Primary text
-    TEXT_SECONDARY = "#8b949e"  # Secondary/muted text
+    # Text - brighter for readability
+    TEXT_PRIMARY = "#ffffff"    # Primary text (was #f0f6fc)
+    TEXT_SECONDARY = "#a8b5c8"  # Secondary/muted text (was #8b949e)
+    TEXT_MUTED = "#6b7a8f"      # Very muted text
     
-    # Borders
-    BORDER_DEFAULT = "rgba(255,255,255,0.08)"  # Subtle borders
+    # Borders - more visible
+    BORDER_DEFAULT = "rgba(255,255,255,0.15)"  # Subtle borders (was 0.08)
+    BORDER_HOVER = "rgba(255,255,255,0.25)"
     
-    # Accents
-    ACCENT_PRIMARY = "#38bdf8"  # Cyan - primary actions
-    ACCENT_SUCCESS = "#22c55e"  # Green - success/positive
-    ACCENT_WARNING = "#f59e0b"  # Amber - warnings
-    ACCENT_DANGER = "#ef4444"   # Red - errors/danger
-    ACCENT_INFO = "#818cf8"     # Indigo - info
+    # Accents - brighter
+    ACCENT_PRIMARY = "#4fc3f7"  # Cyan - primary actions (was #38bdf8)
+    ACCENT_SUCCESS = "#66bb6a"  # Green - success/positive (was #22c55e)
+    ACCENT_WARNING = "#ffb74d"  # Amber - warnings (was #f59e0b)
+    ACCENT_DANGER = "#ef5350"   # Red - errors/danger (was #ef4444)
+    ACCENT_INFO = "#7986cb"     # Indigo - info (was #818cf8)
     
     # Legacy mappings for backward compatibility
     BG_TERTIARY = BG_RAISED

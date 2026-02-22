@@ -224,7 +224,11 @@ class VirtualChartScrollArea(QScrollArea):
                    decodes: DecodeRegistry, top_n: int, show_labels: bool) -> None:
         """Render all charts with data."""
         for card in self.chart_cards:
-            if not card.is_rendered or card.figure is None:
+            # Lazy-render cards that haven't been rendered yet
+            if not card.is_rendered:
+                self._render_chart(card)
+            
+            if card.figure is None:
                 continue
             
             card.figure.clear()
@@ -412,6 +416,7 @@ class ResultsPanel(QWidget):
             msg.setStyleSheet(f"color: {Colors.ACCENT_WARNING};")
             layout.addWidget(msg)
             self.chart_scroll = None
+            self.empty_state = None
         
         self.setLayout(layout)
     
@@ -534,6 +539,8 @@ class ResultsPanel(QWidget):
         
         if self.empty_state:
             self.empty_state.setVisible(not bool(rows))
+        if self.chart_scroll:
+            self.chart_scroll.setVisible(bool(rows))
         
         self.update_view()
     
@@ -828,6 +835,7 @@ class ResultsPanel(QWidget):
         
         if self.empty_state:
             self.empty_state.setVisible(True)
+        self.chart_scroll.setVisible(False)
         
         for card in self.chart_scroll.chart_cards:
             if card.figure:
