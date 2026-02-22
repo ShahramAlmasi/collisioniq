@@ -61,7 +61,7 @@ class ConfigPanel(QWidget):
         """Build modern config UI."""
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         # ===== Tab Navigation =====
         self.tab_control = SegmentedControl([
@@ -108,7 +108,7 @@ class ConfigPanel(QWidget):
         panel = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Info card
         info = Card()
@@ -117,11 +117,11 @@ class ConfigPanel(QWidget):
                 background-color: {Colors.ACCENT_INFO}10;
                 border: 1px solid {Colors.ACCENT_INFO}40;
                 border-radius: 8px;
-                padding: 12px;
+                padding: 8px;
             }}
         """)
         info_layout = QHBoxLayout()
-        info_layout.setSpacing(12)
+        info_layout.setSpacing(8)
         
         icon = QLabel("💡")
         icon.setStyleSheet("font-size: 20px;")
@@ -164,7 +164,7 @@ class ConfigPanel(QWidget):
                 padding: 8px;
             """)
             row_layout = QHBoxLayout()
-            row_layout.setSpacing(12)
+            row_layout.setSpacing(8)
             
             label = QLabel(key)
             label.setFixedWidth(150)
@@ -236,7 +236,7 @@ class ConfigPanel(QWidget):
         panel = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Info card
         info = Card()
@@ -245,11 +245,11 @@ class ConfigPanel(QWidget):
                 background-color: {Colors.ACCENT_INFO}10;
                 border: 1px solid {Colors.ACCENT_INFO}40;
                 border-radius: 8px;
-                padding: 12px;
+                padding: 8px;
             }}
         """)
         info_layout = QHBoxLayout()
-        info_layout.setSpacing(12)
+        info_layout.setSpacing(8)
         
         icon = QLabel("💡")
         icon.setStyleSheet("font-size: 20px;")
@@ -313,7 +313,7 @@ class ConfigPanel(QWidget):
             }}
         """)
         right_l = QVBoxLayout()
-        right_l.setSpacing(12)
+        right_l.setSpacing(8)
         
         # Editor header
         editor_header = QHBoxLayout()
@@ -386,7 +386,7 @@ class ConfigPanel(QWidget):
         panel = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         # Export section
         export_card = Card()
@@ -395,11 +395,11 @@ class ConfigPanel(QWidget):
                 background-color: {Colors.BG_SECONDARY};
                 border: 1px solid {Colors.BORDER_DEFAULT};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         export_layout = QVBoxLayout()
-        export_layout.setSpacing(12)
+        export_layout.setSpacing(8)
         
         export_title = QLabel("📤 Export Configuration")
         export_title.setStyleSheet(f"""
@@ -415,7 +415,7 @@ class ConfigPanel(QWidget):
         export_layout.addWidget(export_desc)
         
         export_grid = QHBoxLayout()
-        export_grid.setSpacing(12)
+        export_grid.setSpacing(8)
         
         self.btn_export_full = QPushButton("💾 Full Config (JSON)")
         self.btn_export_full.setToolTip("Export complete configuration")
@@ -445,11 +445,11 @@ class ConfigPanel(QWidget):
                 background-color: {Colors.BG_SECONDARY};
                 border: 1px solid {Colors.BORDER_DEFAULT};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         import_layout = QVBoxLayout()
-        import_layout.setSpacing(12)
+        import_layout.setSpacing(8)
         
         import_title = QLabel("📥 Import Configuration")
         import_title.setStyleSheet(f"""
@@ -465,7 +465,7 @@ class ConfigPanel(QWidget):
         import_layout.addWidget(import_desc)
         
         import_grid = QHBoxLayout()
-        import_grid.setSpacing(12)
+        import_grid.setSpacing(8)
         
         self.btn_import_full = QPushButton("📂 Import Full Config")
         self.btn_import_full.setToolTip("Import complete configuration")
@@ -490,11 +490,11 @@ class ConfigPanel(QWidget):
                 background-color: {Colors.ACCENT_DANGER}10;
                 border: 1px solid {Colors.ACCENT_DANGER}40;
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         reset_layout = QVBoxLayout()
-        reset_layout.setSpacing(12)
+        reset_layout.setSpacing(8)
         
         reset_title = QLabel("⚠️ Reset Configuration")
         reset_title.setStyleSheet(f"""

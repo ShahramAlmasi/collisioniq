@@ -60,23 +60,23 @@ class Colors:
 
 
 class Spacing:
-    """Consistent spacing scale."""
-    XS = 4
-    SM = 8
-    MD = 12
-    LG = 16
-    XL = 24
-    XXL = 32
+    """Consistent spacing scale - compact for QGIS dock."""
+    XS = 2
+    SM = 4
+    MD = 8
+    LG = 12
+    XL = 16
+    XXL = 24
 
 
 class Typography:
-    """Typography scale."""
-    XS = 10
-    SM = 11
-    BASE = 13
-    LG = 15
-    XL = 18
-    XXL = 24
+    """Typography scale - compact for density."""
+    XS = 9
+    SM = 10
+    BASE = 11
+    LG = 13
+    XL = 16
+    XXL = 20
     
     # Legacy mappings
     XXXL = XXL
@@ -470,12 +470,12 @@ class KPICard(QFrame):
         self.setObjectName("KPICard")
         
         layout = QVBoxLayout()
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(4)
+        layout.setContentsMargins(10, 8, 10, 8)  # Compact padding
+        layout.setSpacing(2)  # Tight spacing
         
         self.value_label = QLabel(value)
         self.value_label.setStyleSheet(f"""
-            font-size: {Typography.XXL}px;
+            font-size: {Typography.XL}px;  # Was XXL
             font-weight: 700;
             color: {Colors.TEXT_PRIMARY};
         """)

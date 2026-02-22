@@ -72,7 +72,7 @@ class CollisionAnalyticsDockWidget(QDockWidget):
         self.root = QWidget()
         root_layout = QVBoxLayout()
         root_layout.setContentsMargins(12, 12, 12, 12)
-        root_layout.setSpacing(12)
+        root_layout.setSpacing(8)
         
         # ===== Header Section =====
         header = self._build_header()
@@ -117,7 +117,7 @@ class CollisionAnalyticsDockWidget(QDockWidget):
         
         layout = QVBoxLayout()
         layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(10)
+        layout.setSpacing(6)
         
         # Title row
         title_row = QHBoxLayout()
@@ -188,7 +188,7 @@ class CollisionAnalyticsDockWidget(QDockWidget):
         
         layout = QHBoxLayout()
         layout.setContentsMargins(4, 0, 4, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         self.status_indicator = StatusIndicator("idle", "Ready")
         
@@ -208,7 +208,7 @@ class CollisionAnalyticsDockWidget(QDockWidget):
         page = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Create panels
         self.filter_panel = FilterPanel()
@@ -239,7 +239,7 @@ class CollisionAnalyticsDockWidget(QDockWidget):
         page = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Config panel
         self.config_panel = ConfigPanel()

@@ -68,7 +68,7 @@ class VirtualChartScrollArea(QScrollArea):
         self.container.setStyleSheet("background: transparent;")
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(16)
+        self.layout.setSpacing(10)
         self.container.setLayout(self.layout)
         self.setWidget(self.container)
         
@@ -127,12 +127,12 @@ class VirtualChartScrollArea(QScrollArea):
                 background-color: {Colors.BG_SECONDARY};
                 border: 1px solid {Colors.BORDER_DEFAULT};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         
         box_l = QVBoxLayout()
-        box_l.setSpacing(12)
+        box_l.setSpacing(8)
         
         # Header with title and interaction hint
         header = QHBoxLayout()
@@ -391,7 +391,7 @@ class ResultsPanel(QWidget):
         """Build modern results UI."""
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         # ===== Control Bar =====
         controls = self._build_control_bar()
@@ -430,7 +430,7 @@ class ResultsPanel(QWidget):
         
         layout = QHBoxLayout()
         layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Export buttons
         export_label = QLabel("Export:")

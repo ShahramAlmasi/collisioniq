@@ -43,7 +43,7 @@ class SummaryPanel(QWidget):
         """Build modern summary UI."""
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         # ===== KPI Cards Row =====
         kpi_section = self._build_kpi_section()
@@ -60,7 +60,7 @@ class SummaryPanel(QWidget):
         content.setStyleSheet("background: transparent;")
         content_layout = QVBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(16)
+        content_layout.setSpacing(10)
         
         # Severity breakdown
         severity_section = self._build_severity_section()
@@ -104,7 +104,7 @@ class SummaryPanel(QWidget):
         
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Main KPIs
         self.kpi_total = KPICard(
@@ -147,12 +147,12 @@ class SummaryPanel(QWidget):
                 background-color: {Colors.BG_SECONDARY};
                 border: 1px solid {Colors.BORDER_DEFAULT};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         
         layout = QVBoxLayout()
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Header
         header = QHBoxLayout()
@@ -183,7 +183,7 @@ class SummaryPanel(QWidget):
         
         for name, color in severities:
             row = QHBoxLayout()
-            row.setSpacing(12)
+            row.setSpacing(8)
             
             label = QLabel(name)
             label.setFixedWidth(100)
@@ -228,12 +228,12 @@ class SummaryPanel(QWidget):
                 background-color: {Colors.BG_SECONDARY};
                 border: 1px solid {Colors.BORDER_DEFAULT};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         
         layout = QVBoxLayout()
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Header
         title = QLabel("Exposure Totals")
@@ -298,12 +298,12 @@ class SummaryPanel(QWidget):
                 background-color: {Colors.ACCENT_DANGER}10;
                 border: 1px solid {Colors.ACCENT_DANGER}40;
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         
         layout = QVBoxLayout()
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Header
         header = QHBoxLayout()
@@ -356,12 +356,12 @@ class SummaryPanel(QWidget):
                 background-color: {Colors.BG_SECONDARY};
                 border: 1px solid {Colors.BORDER_DEFAULT};
                 border-radius: 12px;
-                padding: 16px;
+                padding: 10px;
             }}
         """)
         
         layout = QVBoxLayout()
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         # Header
         title = QLabel("Top Contributors")
@@ -374,7 +374,7 @@ class SummaryPanel(QWidget):
         
         # Three columns
         columns = QHBoxLayout()
-        columns.setSpacing(16)
+        columns.setSpacing(10)
         
         # Impact Type
         self.impact_panel = self._create_top_list_panel("Impact Type")
@@ -398,7 +398,7 @@ class SummaryPanel(QWidget):
         panel.setStyleSheet(f"""
             background-color: {Colors.BG_PRIMARY};
             border-radius: 8px;
-            padding: 12px;
+            padding: 8px;
         """)
         
         layout = QVBoxLayout()

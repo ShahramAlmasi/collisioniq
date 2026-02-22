@@ -70,7 +70,7 @@ class QualityPanel(QWidget):
         """Build modern quality panel UI."""
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(10)
         
         # ===== Control Bar =====
         controls = self._build_control_bar()
@@ -80,7 +80,7 @@ class QualityPanel(QWidget):
         self.results_widget = QWidget()
         results_layout = QVBoxLayout()
         results_layout.setContentsMargins(0, 0, 0, 0)
-        results_layout.setSpacing(16)
+        results_layout.setSpacing(10)
         
         # Summary cards
         summary = self._build_summary_section()
@@ -120,7 +120,7 @@ class QualityPanel(QWidget):
         
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Header
         header = QHBoxLayout()
@@ -180,7 +180,7 @@ class QualityPanel(QWidget):
         """)
         options_layout = QHBoxLayout()
         options_layout.setContentsMargins(12, 10, 12, 10)
-        options_layout.setSpacing(16)
+        options_layout.setSpacing(10)
         
         self.chk_missing_fields = QCheckBox("Missing fields")
         self.chk_missing_fields.setChecked(True)
@@ -215,7 +215,7 @@ class QualityPanel(QWidget):
         
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         self.card_errors = KPICard(
             "Errors",
@@ -262,7 +262,7 @@ class QualityPanel(QWidget):
         
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Header
         header = QHBoxLayout()
@@ -367,7 +367,7 @@ class QualityPanel(QWidget):
         
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         
         # Header
         title = QLabel("Issue Details")

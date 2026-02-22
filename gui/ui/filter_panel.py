@@ -115,7 +115,7 @@ class FilterPanel(QWidget):
         """Build modern filter panel UI."""
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(6)
         
         # ===== Quick Actions Toolbar =====
         toolbar = self._build_toolbar()
@@ -143,7 +143,7 @@ class FilterPanel(QWidget):
         filter_container.setStyleSheet("background: transparent;")
         filter_layout = QVBoxLayout()
         filter_layout.setContentsMargins(0, 0, 0, 0)
-        filter_layout.setSpacing(12)
+        filter_layout.setSpacing(6)
         
         # Date Range Section
         self.date_section = self._build_date_section()
@@ -176,7 +176,7 @@ class FilterPanel(QWidget):
         
         layout = QHBoxLayout()
         layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
         
         # Primary action
         self.btn_apply = QPushButton("▶ Apply Filters")
@@ -232,7 +232,7 @@ class FilterPanel(QWidget):
         
         layout = QVBoxLayout()
         layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
         
         # Header
         header = QHBoxLayout()
@@ -288,7 +288,7 @@ class FilterPanel(QWidget):
         
         # Date inputs
         date_row = QHBoxLayout()
-        date_row.setSpacing(12)
+        date_row.setSpacing(6)
         
         start_col = QVBoxLayout()
         start_label = QLabel("Start Date")
@@ -384,7 +384,7 @@ class FilterPanel(QWidget):
         content = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
         
         # Search all filters
         search_row = QHBoxLayout()
@@ -415,8 +415,8 @@ class FilterPanel(QWidget):
         right_layout = QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(8)
-        right_layout.setSpacing(8)
+        left_layout.setSpacing(6)
+        right_layout.setSpacing(6)
         
         # Distribute filters evenly
         half = (len(FILTER_CONCEPTS) + 1) // 2
