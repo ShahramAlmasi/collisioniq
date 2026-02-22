@@ -191,7 +191,7 @@ class FilterPanel(QWidget):
         
         layout.addLayout(btn_layout)
         
-        # Active filters summary
+        # Active filters summary - create early to avoid AttributeError during signal setup
         self.lbl_active_filters = QLabel("No filters applied")
         self.lbl_active_filters.setWordWrap(True)
         self.lbl_active_filters.setStyleSheet("color: #555; font-size: 11px;")
@@ -202,6 +202,9 @@ class FilterPanel(QWidget):
         self.lbl_status = QLabel("")
         self.lbl_status.setStyleSheet("color: #555;")
         layout.addWidget(self.lbl_status)
+        
+        # Guard flag to prevent signal handling during initialization
+        self._ui_ready = False
         
         # Filter boxes in scrollable splitter area
         splitter = QSplitter(Qt.Horizontal)
@@ -244,6 +247,7 @@ class FilterPanel(QWidget):
         layout.addWidget(scroll, 1)
         
         self.setLayout(layout)
+        self._ui_ready = True  # Mark UI as ready to process signals
     
     def _default_last_full_10y_range(self) -> Tuple[QDate, QDate]:
         today = QDate.currentDate()
@@ -269,6 +273,10 @@ class FilterPanel(QWidget):
     
     def _on_filter_changed(self, *_):
         """Handle filter change - debounce auto-apply."""
+        # Guard against calls during initialization
+        if not getattr(self, '_ui_ready', False):
+            return
+            
         self._update_active_filters_summary()
         
         if self.filters_changed:
