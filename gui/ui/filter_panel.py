@@ -28,7 +28,7 @@ from ...core.config import FILTER_CONCEPTS
 from ...core.decodes import DecodeRegistry
 from ...core.filters import FilterEngine, FilterSpec
 from ...core.utils import safe_str, is_blank
-from .widgets import CheckListFilterBox
+from ..widgets import CheckListFilterBox
 
 BACKGROUND_FILTER_THRESHOLD = 50000
 
