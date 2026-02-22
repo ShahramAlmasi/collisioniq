@@ -440,6 +440,10 @@ class Badge(QLabel):
     def set_variant(self, variant: str):
         self.variant = variant
         self._apply_style()
+    
+    def set_text(self, text: str):
+        """Set badge text."""
+        self.setText(text)
 
 
 class KPICard(QFrame):
