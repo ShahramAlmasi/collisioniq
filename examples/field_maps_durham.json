@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "metadata": {
+    "exported_by": "Shahram Almasi",
+    "export_date": "2024-02-22",
+    "type": "field_maps",
+    "description": "Durham Region standard field mappings for collision analysis",
+    "organization": "Regional Municipality of Durham"
+  },
+  "field_map": {
+    "date": "ACCIDENT_DATE",
+    "municipality": "MUNICIPALITY",
+    "accident_class": "ACCIDENT_CLASS",
+    "accident_location": "LOCATION_TYPE",
+    "impact_location": "IMPACT_LOCATION",
+    "impact_type": "IMPACT_TYPE",
+    "light": "LIGHT_CONDITION",
+    "traffic_control": "TRAFFIC_CONTROL",
+    "traffic_control_condition": "TRAFFIC_CONTROL_COND",
+    "road_jurisdiction": "ROAD_JURISDICTION",
+    "env1": "ENV_CONDITION1",
+    "env2": "ENV_CONDITION2",
+    "location_id": "LOCATION_ID",
+    "location_type": "LOCATION_TYPE_CODE",
+    "map_x": "X_COORD",
+    "map_y": "Y_COORD",
+    "veh_cnt": "VEHICLES_INVOLVED",
+    "ped_cnt": "PEDESTRIANS_INVOLVED",
+    "occ_cnt": "OCCUPANTS_INVOLVED",
+    "drv_cnt": "DRIVERS_INVOLVED",
+    "per_cnt": "PERSONS_INVOLVED"
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "version": "2.0.0",
+  "metadata": {
+    "created_by": "Shahram Almasi",
+    "created_date": "2024-02-22",
+    "description": "Durham Region collision analysis configuration",
+    "organization": "Regional Municipality of Durham",
+    "schema_source": "Corporate GIS - Safety Section"
+  },
+  "field_map": {
+    "date": "ACCIDENT_DATE",
+    "municipality": "MUNICIPALITY",
+    "accident_class": "ACCIDENT_CLASS",
+    "accident_location": "LOCATION_TYPE",
+    "impact_location": "IMPACT_LOCATION",
+    "impact_type": "IMPACT_TYPE",
+    "light": "LIGHT_CONDITION",
+    "traffic_control": "TRAFFIC_CONTROL",
+    "traffic_control_condition": "TRAFFIC_CONTROL_COND",
+    "road_jurisdiction": "ROAD_JURISDICTION",
+    "env1": "ENV_CONDITION1",
+    "env2": "ENV_CONDITION2",
+    "location_id": "LOCATION_ID",
+    "location_type": "LOC_TYPE",
+    "veh_cnt": "VEHICLES_INVOLVED",
+    "ped_cnt": "PEDESTRIANS_INVOLVED",
+    "occ_cnt": "OCCUPANTS_INVOLVED",
+    "drv_cnt": "DRIVERS_INVOLVED",
+    "per_cnt": "PERSONS_INVOLVED"
+  },
+  "decodes": {
+    "municipality": {
+      "CL": "Clarington",
+      "WH": "Whitby",
+      "OA": "Oshawa",
+      "UX": "Uxbridge",
+      "SC": "Scugog",
+      "AJ": "Ajax",
+      "PI": "Pickering",
+      "BR": "Brock"
+    },
+    "accident_class": {
+      "1": "Fatal",
+      "2": "Injury",
+      "3": "PDO",
+      "4": "Unknown"
+    },
+    "impact_type": {
+      "1": "Approaching head-on",
+      "2": "Angle",
+      "3": "Rear end",
+      "4": "Sideswipe",
+      "5": "Turning movement",
+      "6": "Single motor vehicle unattended",
+      "7": "Single motor vehicle other",
+      "8": "Reversing",
+      "40": "Sideswipe - Same direction",
+      "41": "Sideswipe - Opposite direction",
+      "99": "Other"
+    },
+    "light": {
+      "1": "Daylight",
+      "2": "Daylight-artificial",
+      "3": "Dawn",
+      "4": "Dawn-artificial",
+      "5": "Dusk",
+      "6": "Dusk-artificial",
+      "7": "Dark",
+      "8": "Dark-artificial",
+      "99": "Other"
+    },
+    "traffic_control": {
+      "1": "Traffic signal",
+      "2": "Stop sign",
+      "3": "Yield sign",
+      "4": "Pedestrian crossover",
+      "5": "Police control",
+      "6": "School guard",
+      "7": "School bus flashing light and stop arm",
+      "8": "Traffic gate",
+      "9": "Traffic control person",
+      "10": "No control",
+      "11": "Flashing beacon",
+      "12": "Railway crossing",
+      "13": "Pedestrian signal",
+      "14": "Half signal",
+      "99": "Other"
+    },
+    "env1": {
+      "1": "Clear",
+      "2": "Rain",
+      "3": "Snow",
+      "4": "Freezing rain / hail",
+      "5": "Drifting snow",
+      "6": "Strong wind",
+      "7": "Fog / mist / smoke / dust",
+      "8": "Glare",
+      "99": "Other"
+    },
+    "env2": {
+      "1": "Clear",
+      "2": "Rain",
+      "3": "Snow",
+      "4": "Freezing rain / hail",
+      "5": "Drifting snow",
+      "6": "Strong wind",
+      "7": "Fog / mist / smoke / dust",
+      "8": "Glare",
+      "99": "Other"
+    }
+  },
+  "profiles": [
+    {
+      "name": "Fatal + Injury Last 5 Years",
+      "description": "Severe collisions in recent period",
+      "filters": {
+        "date_enabled": true,
+        "date_start": "2020-01-01",
+        "date_end": "2024-12-31",
+        "selection_only": true,
+        "categories": {
+          "accident_class": ["1", "2"]
+        }
+      }
+    },
+    {
+      "name": "Signalized Intersections",
+      "description": "Collisions at signalized intersections",
+      "filters": {
+        "categories": {
+          "traffic_control": ["1"]
+        }
+      }
+    },
+    {
+      "name": "Dark Conditions",
+      "description": "Nighttime collisions",
+      "filters": {
+        "categories": {
+          "light": ["7", "8"]
+        }
+      }
+    },
+    {
+      "name": "Winter Weather",
+      "description": "Snow, freezing rain, drifting snow",
+      "filters": {
+        "categories": {
+          "env1": ["3", "4", "5"]
+        }
+      }
+    }
+  ],
+  "ui_preferences": {
+    "top_n_default": 15,
+    "chart_height": 420,
+    "show_value_labels": true,
+    "default_date_range_years": 10
+  },
+  "performance": {
+    "enable_caching": true,
+    "cache_threshold": 50000,
+    "background_task_threshold": 50000
+  }
+}

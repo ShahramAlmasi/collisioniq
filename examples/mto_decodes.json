@@ -1,0 +1,153 @@
+{
+  "version": "2.0.0",
+  "metadata": {
+    "created_by": "System",
+    "created_date": "2024-02-22",
+    "description": "MTO standard decodes for Ontario collision data",
+    "organization": "Ministry of Transportation of Ontario",
+    "schema_source": "MTO Collision Data Standard"
+  },
+  "decodes": {
+    "accident_class": {
+      "1": "Fatal",
+      "2": "Personal Injury",
+      "3": "Property Damage Only",
+      "4": "Unknown"
+    },
+    "accident_location": {
+      "1": "Non Intersection",
+      "2": "Intersection related",
+      "30": "Four-way",
+      "31": "Offset",
+      "32": "L intersection",
+      "33": "Y intersection",
+      "34": "T intersection",
+      "35": "Roundabout",
+      "97": "Other intersection",
+      "4": "At/near private drive",
+      "5": "At railway crossing",
+      "6": "Underpass or tunnel",
+      "7": "Overpass or bridge",
+      "8": "Trail",
+      "9": "Frozen lake or river",
+      "10": "Parking lot",
+      "11": "Turnaround",
+      "12": "Service centre",
+      "13": "Truck inspection station",
+      "14": "Rest area",
+      "98": "Other on highway",
+      "99": "Other off highway"
+    },
+    "impact_location": {
+      "1": "Within intersection",
+      "2": "Through",
+      "3": "Left turn",
+      "4": "Right turn",
+      "5": "Right turn channel",
+      "6": "Two-way left turn",
+      "7": "Passing",
+      "8": "Shoulder-Left",
+      "9": "Shoulder-Right",
+      "10": "Not on roadway left side",
+      "11": "Not on roadway right side",
+      "12": "Off highway",
+      "13": "Gore/bullnose",
+      "14": "Crossover",
+      "15": "Crosswalk",
+      "16": "School crossing",
+      "17": "Sidewalk",
+      "18": "High occupancy toll (HOT)",
+      "19": "High occupancy vehicle (HOV)",
+      "20": "Bicycle (unprotected)",
+      "21": "Bicycle (protected)",
+      "22": "Transit",
+      "23": "Parking",
+      "24": "Speed change",
+      "25": "Bus bypass",
+      "99": "Other"
+    },
+    "impact_type": {
+      "1": "Approaching head-on",
+      "2": "Angle",
+      "3": "Rear end",
+      "4": "Sideswipe",
+      "5": "Turning movement",
+      "6": "Single motor vehicle unattended",
+      "7": "Single motor vehicle other",
+      "8": "Reversing",
+      "40": "Sideswipe - Same direction",
+      "41": "Sideswipe - Opposite direction",
+      "99": "Other"
+    },
+    "light": {
+      "1": "Daylight",
+      "2": "Daylight-artificial",
+      "3": "Dawn",
+      "4": "Dawn-artificial",
+      "5": "Dusk",
+      "6": "Dusk-artificial",
+      "7": "Dark",
+      "8": "Dark-artificial",
+      "99": "Other"
+    },
+    "traffic_control": {
+      "1": "Traffic signal",
+      "2": "Stop sign",
+      "3": "Yield sign",
+      "4": "Pedestrian crossover",
+      "5": "Police control",
+      "6": "School guard",
+      "7": "School bus flashing light and stop arm",
+      "8": "Traffic gate",
+      "9": "Traffic control person",
+      "10": "No control",
+      "11": "Flashing beacon",
+      "12": "Railway crossing",
+      "13": "Pedestrian signal",
+      "14": "Half signal",
+      "99": "Other"
+    },
+    "traffic_control_condition": {
+      "1": "Functioning",
+      "2": "Non-functioning",
+      "3": "Obscured",
+      "4": "Missing/Damaged"
+    },
+    "road_jurisdiction": {
+      "1": "Municipal (excl. Twp. Rd.)",
+      "2": "Provincial highway",
+      "3": "Township",
+      "4": "County or district",
+      "5": "Regional municipality",
+      "6": "Private property",
+      "7": "Federal",
+      "99": "Other"
+    },
+    "env1": {
+      "1": "Clear",
+      "2": "Rain",
+      "3": "Snow",
+      "4": "Freezing rain / hail",
+      "5": "Drifting snow",
+      "6": "Strong wind",
+      "7": "Fog / mist / smoke / dust",
+      "8": "Glare",
+      "99": "Other"
+    },
+    "env2": {
+      "1": "Clear",
+      "2": "Rain",
+      "3": "Snow",
+      "4": "Freezing rain / hail",
+      "5": "Drifting snow",
+      "6": "Strong wind",
+      "7": "Fog / mist / smoke / dust",
+      "8": "Glare",
+      "99": "Other"
+    },
+    "location_type": {
+      "mri": "Intersection",
+      "mrs": "Road segment"
+    }
+  }
+}

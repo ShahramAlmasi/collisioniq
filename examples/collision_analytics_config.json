@@ -1,0 +1,114 @@
+{
+  "version": "2.0.0",
+  "metadata": {
+    "created_by": "Shahram Almasi",
+    "created_date": "2024-02-22",
+    "description": "Example Durham Region collision analysis configuration",
+    "organization": "Regional Municipality of Durham",
+    "schema_source": "Corporate GIS - Safety Section",
+    "last_modified": "2024-02-22"
+  },
+  "field_map": {
+    "date": "ACCIDENT_DATE",
+    "municipality": "MUNICIPALITY",
+    "accident_class": "ACCIDENT_CLASS",
+    "accident_location": "LOCATION_TYPE",
+    "impact_location": "IMPACT_LOCATION",
+    "impact_type": "IMPACT_TYPE",
+    "light": "LIGHT_CONDITION",
+    "traffic_control": "TRAFFIC_CONTROL",
+    "traffic_control_condition": "TRAFFIC_CONTROL_COND",
+    "road_jurisdiction": "ROAD_JURISDICTION",
+    "env1": "ENV_CONDITION1",
+    "env2": "ENV_CONDITION2",
+    "location_id": "LOCATION_ID",
+    "location_type": "LOCATION_TYPE_CODE",
+    "map_x": "X_COORD",
+    "map_y": "Y_COORD",
+    "veh_cnt": "VEHICLES_INVOLVED",
+    "ped_cnt": "PEDESTRIANS_INVOLVED",
+    "occ_cnt": "OCCUPANTS_INVOLVED",
+    "drv_cnt": "DRIVERS_INVOLVED",
+    "per_cnt": "PERSONS_INVOLVED"
+  },
+  "decodes": {
+    "municipality": {
+      "CL": "Clarington",
+      "WH": "Whitby",
+      "OA": "Oshawa",
+      "UX": "Uxbridge",
+      "SC": "Scugog",
+      "AJ": "Ajax",
+      "PI": "Pickering",
+      "BR": "Brock"
+    },
+    "accident_class": {
+      "1": "Fatal",
+      "2": "Injury",
+      "3": "PDO",
+      "4": "Unknown"
+    },
+    "location_type": {
+      "mri": "Intersection",
+      "mrs": "Road segment"
+    },
+    "road_jurisdiction": {
+      "1": "Municipal (excl. Twp. Rd.)",
+      "2": "Provincial highway",
+      "3": "Township",
+      "4": "County or district",
+      "5": "Regional municipality",
+      "6": "Private property",
+      "7": "Federal",
+      "99": "Other"
+    }
+  },
+  "profiles": [
+    {
+      "name": "Fatal + Injury Last 5 Years",
+      "description": "Severe collisions in recent period",
+      "filters": {
+        "date_enabled": true,
+        "date_start": "2020-01-01",
+        "date_end": "2024-12-31",
+        "selection_only": true,
+        "categories": {
+          "accident_class": ["1", "2"]
+        }
+      }
+    },
+    {
+      "name": "Signalized Intersections",
+      "description": "Collisions at signalized intersections",
+      "filters": {
+        "date_enabled": false,
+        "selection_only": true,
+        "categories": {
+          "traffic_control": ["1"]
+        }
+      }
+    },
+    {
+      "name": "Active School Zones",
+      "description": "Collisions near schools with school guard or bus present",
+      "filters": {
+        "date_enabled": false,
+        "selection_only": true,
+        "categories": {
+          "traffic_control": ["6", "7"]
+        }
+      }
+    }
+  ],
+  "ui_preferences": {
+    "top_n_default": 15,
+    "chart_height": 420,
+    "show_value_labels": true,
+    "default_date_range_years": 10
+  },
+  "performance": {
+    "enable_caching": true,
+    "cache_threshold": 50000,
+    "background_task_threshold": 50000
+  }
+}

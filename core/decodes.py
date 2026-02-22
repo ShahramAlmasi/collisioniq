@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import copy
-from typing import Dict
+from typing import Dict, Optional
 
-from qgis.PyQt.QtCore import QSettings
+try:
+    from qgis.PyQt.QtCore import QSettings
+    HAS_QGIS = True
+except ImportError:
+    HAS_QGIS = False
+    QSettings = None
 
 from .config import DEFAULT_DECODES, SETTINGS_DECODES_KEY
 from .settings import load_json, save_json
@@ -12,12 +17,25 @@ from .utils import safe_str, is_blank
 class DecodeRegistry:
     """Per-user decode tables (raw code -> friendly label), persisted via QSettings."""
 
-    def __init__(self, settings: QSettings):
-        self._settings = settings
+    def __init__(self, settings: Optional['QSettings'] = None):
+        """
+        Initialize DecodeRegistry.
+        
+        Args:
+            settings: Optional QSettings instance. If not provided, creates its own.
+        """
+        if settings is not None:
+            self._settings = settings
+        elif HAS_QGIS:
+            self._settings = QSettings()
+        else:
+            self._settings = None
         self._decodes: Dict[str, Dict[str, str]] = copy.deepcopy(DEFAULT_DECODES)
         self.load()
 
     def load(self) -> None:
+        if self._settings is None:
+            return
         obj = load_json(self._settings, SETTINGS_DECODES_KEY, None)
         if not isinstance(obj, dict):
             return
@@ -26,7 +44,8 @@ class DecodeRegistry:
                 self._decodes[str(k)] = {str(code): str(label) for code, label in v.items()}
 
     def save(self) -> None:
-        save_json(self._settings, SETTINGS_DECODES_KEY, self._decodes)
+        if self._settings is not None:
+            save_json(self._settings, SETTINGS_DECODES_KEY, self._decodes)
 
     def reset_to_defaults(self) -> None:
         self._decodes = copy.deepcopy(DEFAULT_DECODES)

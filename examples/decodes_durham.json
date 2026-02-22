@@ -1,0 +1,66 @@
+{
+  "version": "2.0.0",
+  "metadata": {
+    "exported_by": "Shahram Almasi",
+    "export_date": "2024-02-22",
+    "type": "decodes",
+    "description": "Durham Region standard decode tables for collision analysis",
+    "organization": "Regional Municipality of Durham"
+  },
+  "decodes": {
+    "municipality": {
+      "CL": "Clarington",
+      "WH": "Whitby",
+      "OA": "Oshawa",
+      "UX": "Uxbridge",
+      "SC": "Scugog",
+      "AJ": "Ajax",
+      "PI": "Pickering",
+      "BR": "Brock"
+    },
+    "accident_class": {
+      "1": "Fatal",
+      "2": "Injury",
+      "3": "PDO",
+      "4": "Unknown"
+    },
+    "accident_location": {
+      "1": "Non Intersection",
+      "2": "Intersection related",
+      "30": "Four-way",
+      "31": "Offset",
+      "32": "L intersection",
+      "33": "Y intersection",
+      "34": "T intersection",
+      "35": "Roundabout",
+      "97": "Other intersection",
+      "4": "At/near private drive",
+      "5": "At railway crossing",
+      "6": "Underpass or tunnel",
+      "7": "Overpass or bridge",
+      "8": "Trail",
+      "9": "Frozen lake or river",
+      "10": "Parking lot",
+      "11": "Turnaround",
+      "12": "Service centre",
+      "13": "Truck inspection station",
+      "14": "Rest area",
+      "98": "Other on highway",
+      "99": "Other off highway"
+    },
+    "road_jurisdiction": {
+      "1": "Municipal (excl. Twp. Rd.)",
+      "2": "Provincial highway",
+      "3": "Township",
+      "4": "County or district",
+      "5": "Regional municipality",
+      "6": "Private property",
+      "7": "Federal",
+      "99": "Other"
+    },
+    "location_type": {
+      "mri": "Intersection",
+      "mrs": "Road segment"
+    }
+  }
+}
