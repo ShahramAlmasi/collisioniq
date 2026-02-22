@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, TYPE_CHECKING
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
