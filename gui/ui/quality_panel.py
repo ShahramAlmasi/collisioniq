@@ -1,20 +1,21 @@
-"""Quality Panel - Data quality checks and validation."""
+"""Quality Panel - Modern data quality analysis with visual indicators."""
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QFrame,
     QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -26,6 +27,14 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..modern_widgets import (
+    Badge,
+    Card,
+    Colors,
+    EmptyState,
+    KPICard,
+    Typography,
+)
 from ...core.config import FILTER_CONCEPTS
 from ...core.decodes import DecodeRegistry
 from ...core.utils import safe_str, is_blank, to_datetime
@@ -35,7 +44,7 @@ from ...core.utils import safe_str, is_blank, to_datetime
 class QualityIssue:
     """Represents a data quality issue."""
     severity: str  # 'error', 'warning', 'info'
-    category: str  # e.g., 'missing_field', 'unknown_code', 'date_gap'
+    category: str
     field: str
     message: str
     count: int
@@ -44,7 +53,7 @@ class QualityIssue:
 
 
 class QualityPanel(QWidget):
-    """Panel for data quality analysis and reporting."""
+    """Modern panel for data quality analysis and reporting."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -58,21 +67,120 @@ class QualityPanel(QWidget):
         self._build_ui()
     
     def _build_ui(self) -> None:
+        """Build modern quality panel UI."""
         layout = QVBoxLayout()
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+        
+        # ===== Control Bar =====
+        controls = self._build_control_bar()
+        layout.addWidget(controls)
+        
+        # ===== Results Area =====
+        self.results_widget = QWidget()
+        results_layout = QVBoxLayout()
+        results_layout.setContentsMargins(0, 0, 0, 0)
+        results_layout.setSpacing(16)
+        
+        # Summary cards
+        summary = self._build_summary_section()
+        results_layout.addWidget(summary)
+        
+        # Issues table
+        issues_section = self._build_issues_section()
+        results_layout.addWidget(issues_section, 1)
+        
+        # Details panel
+        details = self._build_details_section()
+        results_layout.addWidget(details)
+        
+        self.results_widget.setLayout(results_layout)
+        self.results_widget.setVisible(False)
+        layout.addWidget(self.results_widget)
+        
+        # ===== Empty State =====
+        self.empty_state = EmptyState(
+            "🔍",
+            "Run Quality Check",
+            "Click 'Run Quality Check' to analyze your data for missing fields, unknown codes, date gaps, and more."
+        )
+        layout.addWidget(self.empty_state)
+        
+        self.setLayout(layout)
+    
+    def _build_control_bar(self) -> QWidget:
+        """Build control bar with check options and run button."""
+        bar = QWidget()
+        bar.setStyleSheet(f"""
+            QWidget {{
+                background-color: {Colors.BG_SECONDARY};
+                border-radius: 8px;
+            }}
+        """)
+        
+        layout = QVBoxLayout()
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(12)
         
         # Header
-        header = QLabel(
-            "Data Quality Analysis\n"
-            "Auto-detect missing fields, unknown codes, date gaps, and null severities."
-        )
-        header.setWordWrap(True)
-        header.setStyleSheet("font-weight: bold; font-size: 12px;")
-        layout.addWidget(header)
+        header = QHBoxLayout()
+        
+        title = QLabel("✓ Data Quality Analysis")
+        title.setStyleSheet(f"""
+            font-size: {Typography.LG}px;
+            font-weight: 600;
+            color: {Colors.TEXT_PRIMARY};
+        """)
+        
+        header.addWidget(title)
+        header.addStretch(1)
+        
+        self.btn_run_check = QPushButton("▶ Run Check")
+        self.btn_run_check.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                border: 1px solid {Colors.ACCENT_PRIMARY};
+                border-radius: 6px;
+                color: {Colors.BG_PRIMARY};
+                padding: 8px 20px;
+                font-size: {Typography.SM}px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                opacity: 0.9;
+            }}
+        """)
+        self.btn_run_check.clicked.connect(self.run_quality_check)
+        
+        header.addWidget(self.btn_run_check)
+        layout.addLayout(header)
         
         # Check options
-        options_group = QGroupBox("Check Options")
+        options = QWidget()
+        options.setStyleSheet(f"""
+            QWidget {{
+                background-color: {Colors.BG_PRIMARY};
+                border-radius: 6px;
+            }}
+            QCheckBox {{
+                color: {Colors.TEXT_SECONDARY};
+                font-size: {Typography.SM}px;
+            }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 1px solid {Colors.BORDER_DEFAULT};
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                border-color: {Colors.ACCENT_PRIMARY};
+            }}
+        """)
         options_layout = QHBoxLayout()
+        options_layout.setContentsMargins(12, 10, 12, 10)
+        options_layout.setSpacing(16)
         
         self.chk_missing_fields = QCheckBox("Missing fields")
         self.chk_missing_fields.setChecked(True)
@@ -89,52 +197,111 @@ class QualityPanel(QWidget):
         self.chk_completeness = QCheckBox("Field completeness")
         self.chk_completeness.setChecked(True)
         
-        options_layout.addWidget(self.chk_missing_fields)
-        options_layout.addWidget(self.chk_unknown_codes)
-        options_layout.addWidget(self.chk_date_gaps)
-        options_layout.addWidget(self.chk_null_severity)
-        options_layout.addWidget(self.chk_completeness)
+        for cb in [self.chk_missing_fields, self.chk_unknown_codes, 
+                   self.chk_date_gaps, self.chk_null_severity, self.chk_completeness]:
+            options_layout.addWidget(cb)
+        
         options_layout.addStretch(1)
+        options.setLayout(options_layout)
+        layout.addWidget(options)
         
-        options_group.setLayout(options_layout)
-        layout.addWidget(options_group)
+        bar.setLayout(layout)
+        return bar
+    
+    def _build_summary_section(self) -> QWidget:
+        """Build summary cards section."""
+        section = QWidget()
+        section.setStyleSheet("background: transparent;")
         
-        # Action buttons
-        btn_layout = QHBoxLayout()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         
-        self.btn_run_check = QPushButton("Run Quality Check")
-        self.btn_run_check.setStyleSheet("font-weight: bold;")
-        self.btn_run_check.clicked.connect(self.run_quality_check)
+        self.card_errors = KPICard(
+            "Errors",
+            "0",
+            accent_color=Colors.ACCENT_DANGER
+        )
         
-        self.btn_export_report = QPushButton("Export Report")
+        self.card_warnings = KPICard(
+            "Warnings",
+            "0",
+            accent_color=Colors.ACCENT_WARNING
+        )
+        
+        self.card_info = KPICard(
+            "Info",
+            "0",
+            accent_color=Colors.ACCENT_INFO
+        )
+        
+        self.card_quality_score = KPICard(
+            "Quality Score",
+            "—",
+            accent_color=Colors.ACCENT_SUCCESS
+        )
+        
+        layout.addWidget(self.card_errors)
+        layout.addWidget(self.card_warnings)
+        layout.addWidget(self.card_info)
+        layout.addWidget(self.card_quality_score)
+        
+        section.setLayout(layout)
+        return section
+    
+    def _build_issues_section(self) -> QWidget:
+        """Build issues table section."""
+        card = Card()
+        card.setStyleSheet(f"""
+            Card {{
+                background-color: {Colors.BG_SECONDARY};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+                border-radius: 12px;
+            }}
+        """)
+        
+        layout = QVBoxLayout()
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+        
+        # Header
+        header = QHBoxLayout()
+        
+        title = QLabel("Issues Found")
+        title.setStyleSheet(f"""
+            font-size: {Typography.LG}px;
+            font-weight: 600;
+            color: {Colors.TEXT_PRIMARY};
+        """)
+        
+        self.issues_count = Badge("0 issues", "default")
+        
+        self.btn_export_report = QPushButton("📄 Export Report")
+        self.btn_export_report.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.BG_RAISED};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+                border-radius: 6px;
+                color: {Colors.TEXT_SECONDARY};
+                padding: 6px 12px;
+                font-size: {Typography.XS}px;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.BG_PRIMARY};
+                color: {Colors.TEXT_PRIMARY};
+            }}
+        """)
         self.btn_export_report.clicked.connect(self.export_report)
         self.btn_export_report.setEnabled(False)
         
-        btn_layout.addWidget(self.btn_run_check)
-        btn_layout.addWidget(self.btn_export_report)
-        btn_layout.addStretch(1)
+        header.addWidget(title)
+        header.addWidget(self.issues_count)
+        header.addStretch(1)
+        header.addWidget(self.btn_export_report)
         
-        layout.addLayout(btn_layout)
+        layout.addLayout(header)
         
-        # Summary cards
-        self.summary_widget = QWidget()
-        summary_layout = QHBoxLayout()
-        summary_layout.setSpacing(8)
-        
-        self.card_errors = self._create_summary_card("Errors", "#dc2626")
-        self.card_warnings = self._create_summary_card("Warnings", "#ea580c")
-        self.card_info = self._create_summary_card("Info", "#2563eb")
-        
-        summary_layout.addWidget(self.card_errors)
-        summary_layout.addWidget(self.card_warnings)
-        summary_layout.addWidget(self.card_info)
-        summary_layout.addStretch(1)
-        
-        self.summary_widget.setLayout(summary_layout)
-        self.summary_widget.setVisible(False)
-        layout.addWidget(self.summary_widget)
-        
-        # Issues table
+        # Table
         self.issues_table = QTableWidget(0, 5)
         self.issues_table.setHorizontalHeaderLabels([
             "Severity", "Category", "Field", "Count", "Description"
@@ -146,82 +313,93 @@ class QualityPanel(QWidget):
         self.issues_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
         self.issues_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.issues_table.setAlternatingRowColors(True)
-        self.issues_table.setVisible(False)
+        self.issues_table.verticalHeader().setVisible(False)
+        
+        # Style the table
+        self.issues_table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: {Colors.BG_PRIMARY};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+                border-radius: 6px;
+                color: {Colors.TEXT_PRIMARY};
+                font-size: {Typography.SM}px;
+                gridline-color: {Colors.BORDER_DEFAULT};
+            }}
+            QTableWidget::item {{
+                padding: 8px 12px;
+                border-bottom: 1px solid {Colors.BORDER_DEFAULT};
+            }}
+            QTableWidget::item:selected {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                color: {Colors.BG_PRIMARY};
+            }}
+            QHeaderView::section {{
+                background-color: {Colors.BG_RAISED};
+                color: {Colors.TEXT_SECONDARY};
+                padding: 10px 12px;
+                border: none;
+                border-bottom: 1px solid {Colors.BORDER_DEFAULT};
+                font-weight: 600;
+                font-size: {Typography.XS}px;
+                text-transform: uppercase;
+            }}
+            QTableWidget::alternate {{ background-color: {Colors.BG_SECONDARY}; }}
+        """)
         
         layout.addWidget(self.issues_table, 1)
-        
-        # Details panel for selected issue
-        self.details_group = QGroupBox("Issue Details")
-        details_layout = QVBoxLayout()
-        
-        self.details_text = QLabel("Select an issue to see details and recommendations.")
-        self.details_text.setWordWrap(True)
-        self.details_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        
-        details_layout.addWidget(self.details_text)
-        self.details_group.setLayout(details_layout)
-        self.details_group.setVisible(False)
-        
-        layout.addWidget(self.details_group)
-        
-        # Status label
-        self.lbl_status = QLabel("Click 'Run Quality Check' to analyze the current layer.")
-        layout.addWidget(self.lbl_status)
-        
-        self.setLayout(layout)
+        card.setLayout(layout)
         
         # Connect selection change
         self.issues_table.itemSelectionChanged.connect(self._on_issue_selected)
+        
+        return card
     
-    def _create_summary_card(self, title: str, color: str) -> QFrame:
-        """Create a summary card widget."""
-        card = QFrame()
-        card.setFrameStyle(QFrame.StyledPanel | QFrame.Raised)
+    def _build_details_section(self) -> QWidget:
+        """Build details panel for selected issue."""
+        card = Card()
         card.setStyleSheet(f"""
-            QFrame {{
-                background-color: {color}15;
-                border: 1px solid {color}40;
-                border-radius: 4px;
+            Card {{
+                background-color: {Colors.BG_SECONDARY};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+                border-radius: 12px;
             }}
         """)
         
         layout = QVBoxLayout()
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
         
-        label = QLabel(title)
-        label.setStyleSheet(f"color: {color}; font-weight: bold;")
+        # Header
+        title = QLabel("Issue Details")
+        title.setStyleSheet(f"""
+            font-size: {Typography.LG}px;
+            font-weight: 600;
+            color: {Colors.TEXT_PRIMARY};
+        """)
+        layout.addWidget(title)
         
-        value = QLabel("0")
-        value.setStyleSheet(f"color: {color}; font-size: 24px; font-weight: bold;")
+        # Details content
+        self.details_text = QLabel("Select an issue from the table above to see details and recommendations.")
+        self.details_text.setWordWrap(True)
+        self.details_text.setStyleSheet(f"""
+            QLabel {{
+                color: {Colors.TEXT_SECONDARY};
+                font-size: {Typography.SM}px;
+                line-height: 1.5;
+            }}
+        """)
+        self.details_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
         
-        layout.addWidget(label)
-        layout.addWidget(value)
-        
+        layout.addWidget(self.details_text)
         card.setLayout(layout)
-        card._value_label = value  # Store reference for updates
         
         return card
-    
-    def _update_summary_cards(self) -> None:
-        """Update summary card values."""
-        errors = sum(1 for i in self.issues if i.severity == 'error')
-        warnings = sum(1 for i in self.issues if i.severity == 'warning')
-        info = sum(1 for i in self.issues if i.severity == 'info')
-        
-        self.card_errors._value_label.setText(str(errors))
-        self.card_warnings._value_label.setText(str(warnings))
-        self.card_info._value_label.setText(str(info))
-        
-        self.summary_widget.setVisible(True)
     
     def set_layer(self, layer, field_map: Dict[str, str], decodes: DecodeRegistry) -> None:
         """Set the current layer and configuration."""
         self.layer = layer
         self.field_map = field_map
         self.decodes = decodes
-        
-        if layer is not None:
-            self.lbl_status.setText(f"Layer: {layer.name()} | {layer.featureCount()} features")
     
     def run_quality_check(self) -> None:
         """Run the quality check analysis."""
@@ -252,8 +430,9 @@ class QualityPanel(QWidget):
         self._update_summary_cards()
         self.btn_export_report.setEnabled(bool(self.issues))
         
-        total = len(self.issues)
-        self.lbl_status.setText(f"Quality check complete. Found {total} issue(s).")
+        # Show results
+        self.empty_state.setVisible(False)
+        self.results_widget.setVisible(True)
     
     def _check_missing_fields(self) -> None:
         """Check for missing/unmapped fields."""
@@ -290,7 +469,6 @@ class QualityPanel(QWidget):
         if not self.layer or not self.decodes:
             return
         
-        # Get fields that have decode tables
         for concept in self.decodes.keys():
             field_name = self.field_map.get(concept)
             if not field_name:
@@ -538,30 +716,86 @@ class QualityPanel(QWidget):
             row = self.issues_table.rowCount()
             self.issues_table.insertRow(row)
             
-            # Severity with color
-            sev_item = QTableWidgetItem(issue.severity.upper())
-            colors = {
-                'error': '#dc2626',
-                'warning': '#ea580c',
-                'info': '#2563eb'
+            # Severity with styled badge
+            sev_colors = {
+                'error': Colors.ACCENT_DANGER,
+                'warning': Colors.ACCENT_WARNING,
+                'info': Colors.ACCENT_INFO
             }
-            sev_item.setForeground(Qt.red if issue.severity == 'error' else 
-                                  (Qt.darkYellow if issue.severity == 'warning' else Qt.blue))
+            sev_text = issue.severity.upper()
+            sev_item = QTableWidgetItem(sev_text)
+            sev_item.setForeground(QColor(sev_colors.get(issue.severity, Colors.TEXT_SECONDARY)))
             sev_item.setData(Qt.UserRole, issue)
+            sev_item.setTextAlignment(Qt.AlignCenter)
             
             self.issues_table.setItem(row, 0, sev_item)
-            self.issues_table.setItem(row, 1, QTableWidgetItem(issue.category))
-            self.issues_table.setItem(row, 2, QTableWidgetItem(issue.field))
-            self.issues_table.setItem(row, 3, QTableWidgetItem(str(issue.count) if issue.count > 0 else "-"))
-            self.issues_table.setItem(row, 4, QTableWidgetItem(issue.message))
+            
+            cat_item = QTableWidgetItem(issue.category)
+            cat_item.setData(Qt.UserRole, issue)
+            self.issues_table.setItem(row, 1, cat_item)
+            
+            field_item = QTableWidgetItem(issue.field)
+            field_item.setData(Qt.UserRole, issue)
+            self.issues_table.setItem(row, 2, field_item)
+            
+            count_item = QTableWidgetItem(str(issue.count) if issue.count > 0 else "—")
+            count_item.setData(Qt.UserRole, issue)
+            count_item.setTextAlignment(Qt.AlignCenter)
+            self.issues_table.setItem(row, 3, count_item)
+            
+            msg_item = QTableWidgetItem(issue.message)
+            msg_item.setData(Qt.UserRole, issue)
+            self.issues_table.setItem(row, 4, msg_item)
         
-        self.issues_table.setVisible(bool(self.issues))
+        self.issues_count.set_text(f"{len(self.issues)} issues")
+        if len(self.issues) == 0:
+            self.issues_count.set_variant("success")
+        elif len(self.issues) < 5:
+            self.issues_count.set_variant("warning")
+        else:
+            self.issues_count.set_variant("danger")
+    
+    def _update_summary_cards(self) -> None:
+        """Update summary card values."""
+        errors = sum(1 for i in self.issues if i.severity == 'error')
+        warnings = sum(1 for i in self.issues if i.severity == 'warning')
+        info = sum(1 for i in self.issues if i.severity == 'info')
+        
+        self.card_errors.set_value(str(errors))
+        self.card_warnings.set_value(str(warnings))
+        self.card_info.set_value(str(info))
+        
+        # Calculate quality score
+        total_issues = len(self.issues)
+        if total_issues == 0:
+            score = "100%"
+            color = Colors.ACCENT_SUCCESS
+        else:
+            # Weight errors more heavily
+            weighted = errors * 3 + warnings * 2 + info * 1
+            score_val = max(0, 100 - weighted * 5)
+            score = f"{score_val}%"
+            if score_val >= 80:
+                color = Colors.ACCENT_SUCCESS
+            elif score_val >= 60:
+                color = Colors.ACCENT_WARNING
+            else:
+                color = Colors.ACCENT_DANGER
+        
+        self.card_quality_score.set_value(score, color)
     
     def _on_issue_selected(self) -> None:
         """Handle issue selection to show details."""
         selected = self.issues_table.selectedItems()
         if not selected:
-            self.details_group.setVisible(False)
+            self.details_text.setText("Select an issue from the table above to see details and recommendations.")
+            self.details_text.setStyleSheet(f"""
+                QLabel {{
+                    color: {Colors.TEXT_SECONDARY};
+                    font-size: {Typography.SM}px;
+                    line-height: 1.5;
+                }}
+            """)
             return
         
         row = selected[0].row()
@@ -570,21 +804,33 @@ class QualityPanel(QWidget):
         if not issue:
             return
         
+        severity_colors = {
+            'error': Colors.ACCENT_DANGER,
+            'warning': Colors.ACCENT_WARNING,
+            'info': Colors.ACCENT_INFO
+        }
+        color = severity_colors.get(issue.severity, Colors.TEXT_SECONDARY)
+        
         details = f"""
-        <b>Severity:</b> {issue.severity.upper()}<br>
-        <b>Category:</b> {issue.category}<br>
+        <b style='color: {color}'>{issue.severity.upper()}: {issue.category}</b><br><br>
         <b>Field:</b> {issue.field}<br>
-        <b>Count:</b> {issue.count if issue.count > 0 else 'N/A'}<br>
+        <b>Count:</b> {issue.count if issue.count > 0 else 'N/A'}<br><br>
         <b>Message:</b> {issue.message}<br>
         """
         
         if issue.sample_values:
-            details += f"<b>Sample values:</b> {', '.join(issue.sample_values[:5])}<br>"
+            details += f"<b>Sample values:</b> {', '.join(issue.sample_values[:5])}<br><br>"
         
-        details += f"<b>Recommendation:</b> {issue.recommendation}"
+        details += f"<b style='color: {Colors.ACCENT_SUCCESS}'>Recommendation:</b> {issue.recommendation}"
         
         self.details_text.setText(details)
-        self.details_group.setVisible(True)
+        self.details_text.setStyleSheet(f"""
+            QLabel {{
+                color: {Colors.TEXT_PRIMARY};
+                font-size: {Typography.SM}px;
+                line-height: 1.5;
+            }}
+        """)
     
     def export_report(self) -> None:
         """Export quality report to text file."""
@@ -627,7 +873,7 @@ class QualityPanel(QWidget):
                         f.write(f"   Samples: {', '.join(issue.sample_values[:5])}\n")
                     f.write(f"   Recommendation: {issue.recommendation}\n\n")
             
-            QMessageBox.information(self, "Data Quality", f"Report saved:\n{path}")
+            QMessageBox.information(self, "Data Quality", f"✅ Report saved:\n{path}")
         
         except Exception as e:
-            QMessageBox.warning(self, "Data Quality", f"Export failed:\n{e}")
+            QMessageBox.warning(self, "Data Quality", f"❌ Export failed:\n{e}")

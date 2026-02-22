@@ -1,16 +1,15 @@
-"""Filter Panel - Filter controls and value selection UI."""
+"""Filter Panel - Modern filter controls with collapsible sections."""
 from __future__ import annotations
 
 import re
 from datetime import date
-from typing import Any, Dict, List, Optional, Set, Tuple, Callable
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from qgis.PyQt.QtCore import Qt, QDate, QTimer
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QDateEdit,
     QFrame,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -28,7 +27,17 @@ from ...core.config import FILTER_CONCEPTS
 from ...core.decodes import DecodeRegistry
 from ...core.filters import FilterEngine, FilterSpec
 from ...core.utils import safe_str, is_blank
-from ..widgets import CheckListFilterBox
+from ..modern_widgets import (
+    Badge,
+    CheckListFilterBox,
+    CollapsibleSection,
+    Colors,
+    EmptyState,
+    KPICard,
+    SegmentedControl,
+    Typography,
+)
+
 
 BACKGROUND_FILTER_THRESHOLD = 50000
 
@@ -49,7 +58,6 @@ class FilterTask(QgsTask):
     def run(self) -> bool:
         try:
             engine = FilterEngine(self.layer)
-            # Use batch processing for progress updates
             total = self.layer.featureCount()
             processed = 0
             batch_size = 1000
@@ -80,10 +88,11 @@ class FilterTask(QgsTask):
 
 
 class FilterPanel(QWidget):
-    """Panel containing all filter controls."""
+    """Modern filter panel with collapsible sections and better organization."""
     
     filters_changed = None  # Callback: () -> None
     filters_applied = None  # Callback: (fids, rows, total_count) -> None
+    status_changed = None   # Callback: (status, message) -> None
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -103,151 +112,342 @@ class FilterPanel(QWidget):
         self._build_ui()
     
     def _build_ui(self) -> None:
+        """Build modern filter panel UI."""
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+        
+        # ===== Quick Actions Toolbar =====
+        toolbar = self._build_toolbar()
+        layout.addWidget(toolbar)
+        
+        # ===== Active Filters Summary =====
+        self.active_filters_card = self._build_active_filters_card()
+        layout.addWidget(self.active_filters_card)
+        
+        # ===== Progress Bar (hidden by default) =====
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat("Processing: %p%")
+        layout.addWidget(self.progress_bar)
+        
+        # ===== Filter Sections (Scrollable) =====
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setFrameStyle(QFrame.NoFrame)
+        scroll.setStyleSheet("background: transparent;")
+        
+        filter_container = QWidget()
+        filter_container.setStyleSheet("background: transparent;")
+        filter_layout = QVBoxLayout()
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_layout.setSpacing(12)
+        
+        # Date Range Section
+        self.date_section = self._build_date_section()
+        filter_layout.addWidget(self.date_section)
+        
+        # Scope Section
+        self.scope_section = self._build_scope_section()
+        filter_layout.addWidget(self.scope_section)
+        
+        # Category Filters Section (collapsible groups)
+        self.category_section = self._build_category_section()
+        filter_layout.addWidget(self.category_section, 1)
+        
+        filter_layout.addStretch(1)
+        filter_container.setLayout(filter_layout)
+        scroll.setWidget(filter_container)
+        
+        layout.addWidget(scroll, 1)
+        self.setLayout(layout)
+        
+        self._ui_ready = True
+    
+    def _build_toolbar(self) -> QWidget:
+        """Build quick actions toolbar."""
+        toolbar = QWidget()
+        toolbar.setStyleSheet(f"""
+            background-color: {Colors.BG_SECONDARY};
+            border-radius: 8px;
+        """)
+        
+        layout = QHBoxLayout()
+        layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(8)
         
-        # Date range section
-        date_group = QGroupBox("Date Range")
-        date_layout = QVBoxLayout()
+        # Primary action
+        self.btn_apply = QPushButton("▶ Apply Filters")
+        self.btn_apply.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.ACCENT_PRIMARY};
+                border: 1px solid {Colors.ACCENT_PRIMARY};
+                border-radius: 6px;
+                padding: 8px 16px;
+                color: white;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: #2563eb;
+            }}
+        """)
+        self.btn_apply.clicked.connect(self.apply_filters)
         
+        # Secondary actions
+        self.btn_reset = QPushButton("↺ Reset")
+        self.btn_reset.setToolTip("Clear all filters")
+        self.btn_reset.clicked.connect(self.reset_all_filters)
+        
+        # Load values dropdown
+        self.btn_load = QPushButton("Load Values ▼")
+        self.btn_load.setToolTip("Load filter values from selection or layer")
+        
+        # Simple menu for load options
+        from qgis.PyQt.QtWidgets import QMenu
+        load_menu = QMenu(self)
+        load_menu.addAction("From Selection", lambda: self._populate_filter_values("selection"))
+        load_menu.addAction("From Layer", lambda: self._populate_filter_values("layer"))
+        load_menu.addSeparator()
+        load_menu.addAction("Use Decodes", lambda: self._populate_filter_values("decodes"))
+        self.btn_load.setMenu(load_menu)
+        
+        layout.addWidget(self.btn_apply)
+        layout.addWidget(self.btn_reset)
+        layout.addStretch(1)
+        layout.addWidget(self.btn_load)
+        
+        toolbar.setLayout(layout)
+        return toolbar
+    
+    def _build_active_filters_card(self) -> QWidget:
+        """Build active filters summary card."""
+        card = QWidget()
+        card.setStyleSheet(f"""
+            background-color: {Colors.BG_SECONDARY};
+            border: 1px solid {Colors.BORDER_DEFAULT};
+            border-radius: 8px;
+        """)
+        
+        layout = QVBoxLayout()
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(8)
+        
+        # Header
+        header = QHBoxLayout()
+        header_label = QLabel("Active Filters")
+        header_label.setStyleSheet(f"""
+            font-weight: 600;
+            color: {Colors.TEXT_SECONDARY};
+            font-size: {Typography.SM}px;
+            text-transform: uppercase;
+        """)
+        
+        self.result_count = Badge("0 results", "default")
+        
+        header.addWidget(header_label)
+        header.addStretch(1)
+        header.addWidget(self.result_count)
+        
+        layout.addLayout(header)
+        
+        # Filter pills
+        self.filters_container = QWidget()
+        self.filters_layout = QHBoxLayout()
+        self.filters_layout.setContentsMargins(0, 0, 0, 0)
+        self.filters_layout.setSpacing(6)
+        self.filters_layout.addStretch(1)
+        
+        self.filters_container.setLayout(self.filters_layout)
+        layout.addWidget(self.filters_container)
+        
+        # Empty state
+        self.empty_filters_label = QLabel("No filters applied")
+        self.empty_filters_label.setStyleSheet(f"color: {Colors.TEXT_MUTED}; font-style: italic;")
+        self.empty_filters_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.empty_filters_label)
+        
+        card.setLayout(layout)
+        return card
+    
+    def _build_date_section(self) -> CollapsibleSection:
+        """Build date range filter section."""
+        section = CollapsibleSection("📅 Date Range", expanded=True)
+        
+        content = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+        
+        # Enable checkbox
         self.chk_use_date = QCheckBox("Filter by date range")
         self.chk_use_date.setChecked(True)
         self.chk_use_date.stateChanged.connect(self._on_filter_changed)
+        layout.addWidget(self.chk_use_date)
         
+        # Date inputs
+        date_row = QHBoxLayout()
+        date_row.setSpacing(12)
+        
+        start_col = QVBoxLayout()
+        start_label = QLabel("Start Date")
+        start_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: {Typography.XS}px;")
         self.date_start = QDateEdit()
-        self.date_end = QDateEdit()
         self.date_start.setCalendarPopup(True)
-        self.date_end.setCalendarPopup(True)
         self.date_start.dateChanged.connect(self._on_filter_changed)
-        self.date_end.dateChanged.connect(self._on_filter_changed)
+        start_col.addWidget(start_label)
+        start_col.addWidget(self.date_start)
         
+        end_col = QVBoxLayout()
+        end_label = QLabel("End Date")
+        end_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: {Typography.XS}px;")
+        self.date_end = QDateEdit()
+        self.date_end.setCalendarPopup(True)
+        self.date_end.dateChanged.connect(self._on_filter_changed)
+        end_col.addWidget(end_label)
+        end_col.addWidget(self.date_end)
+        
+        date_row.addLayout(start_col, 1)
+        date_row.addLayout(end_col, 1)
+        
+        layout.addLayout(date_row)
+        
+        # Preset buttons
+        presets = QHBoxLayout()
+        presets.setSpacing(6)
+        
+        presets_label = QLabel("Quick:")
+        presets_label.setStyleSheet(f"color: {Colors.TEXT_MUTED};")
+        
+        self.btn_last_5y = QPushButton("5 years")
+        self.btn_last_10y = QPushButton("10 years")
+        self.btn_last_5y.setStyleSheet(f"padding: 4px 8px; font-size: {Typography.XS}px;")
+        self.btn_last_10y.setStyleSheet(f"padding: 4px 8px; font-size: {Typography.XS}px;")
+        
+        self.btn_last_5y.clicked.connect(lambda: self._set_date_preset(5))
+        self.btn_last_10y.clicked.connect(lambda: self._set_date_preset(10))
+        
+        presets.addWidget(presets_label)
+        presets.addWidget(self.btn_last_5y)
+        presets.addWidget(self.btn_last_10y)
+        presets.addStretch(1)
+        
+        layout.addLayout(presets)
+        
+        # Set defaults
         dstart, dend = self._default_last_full_10y_range()
         self.date_start.setDate(dstart)
         self.date_end.setDate(dend)
         
-        date_row = QHBoxLayout()
-        date_row.addWidget(QLabel("Start:"))
-        date_row.addWidget(self.date_start)
-        date_row.addSpacing(12)
-        date_row.addWidget(QLabel("End:"))
-        date_row.addWidget(self.date_end)
-        date_row.addStretch(1)
+        content.setLayout(layout)
+        section.set_content(content)
         
-        date_layout.addWidget(self.chk_use_date)
-        date_layout.addLayout(date_row)
-        date_group.setLayout(date_layout)
-        layout.addWidget(date_group)
+        return section
+    
+    def _build_scope_section(self) -> CollapsibleSection:
+        """Build scope and selection section."""
+        section = CollapsibleSection("🎯 Scope & Selection", expanded=True)
         
-        # Scope section
-        scope_group = QGroupBox("Scope & Selection")
-        scope_layout = QVBoxLayout()
+        content = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
         
-        self.chk_selection_only = QCheckBox("Scope = map selection (recommended)")
+        self.chk_selection_only = QCheckBox("Limit to map selection")
         self.chk_selection_only.setChecked(True)
+        self.chk_selection_only.setToolTip("Only analyze features selected on the map")
         self.chk_selection_only.stateChanged.connect(self._on_filter_changed)
         
         self.chk_select_filtered = QCheckBox("Select filtered features on map")
         self.chk_select_filtered.setChecked(False)
+        self.chk_select_filtered.setToolTip("Update map selection to match filtered results")
         
-        scope_layout.addWidget(self.chk_selection_only)
-        scope_layout.addWidget(self.chk_select_filtered)
-        scope_group.setLayout(scope_layout)
-        layout.addWidget(scope_group)
+        # Selection info
+        self.selection_info = QLabel("No features selected on map")
+        self.selection_info.setStyleSheet(f"color: {Colors.TEXT_MUTED}; font-size: {Typography.XS}px;")
         
-        # Progress bar (hidden by default)
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("Filtering: %p%")
-        layout.addWidget(self.progress_bar)
+        layout.addWidget(self.chk_selection_only)
+        layout.addWidget(self.selection_info)
+        layout.addSpacing(8)
+        layout.addWidget(self.chk_select_filtered)
         
-        # Action buttons
-        btn_layout = QHBoxLayout()
+        content.setLayout(layout)
+        section.set_content(content)
         
-        self.btn_apply = QPushButton("Apply Filters")
-        self.btn_apply.setStyleSheet("font-weight: bold;")
-        self.btn_apply.clicked.connect(self.apply_filters)
+        return section
+    
+    def _build_category_section(self) -> CollapsibleSection:
+        """Build category filters section with two-column layout."""
+        section = CollapsibleSection("🏷️ Category Filters", expanded=True)
         
-        self.btn_reset = QPushButton("Reset")
-        self.btn_reset.clicked.connect(self.reset_all_filters)
+        content = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
         
-        self.btn_values_decodes = QPushButton("Use decode values")
-        self.btn_values_decodes.clicked.connect(lambda: self._populate_filter_values(source="decodes"))
+        # Search all filters
+        search_row = QHBoxLayout()
+        self.global_search = QLabel("🔍")
+        self.global_search.setStyleSheet("font-size: 14px;")
         
-        self.btn_values_selection = QPushButton("Load from selection")
-        self.btn_values_selection.clicked.connect(lambda: self._populate_filter_values(source="selection"))
+        self.category_search = QLabel("Filter categories by typing in each box below")
+        self.category_search.setStyleSheet(f"color: {Colors.TEXT_MUTED}; font-size: {Typography.XS}px;")
         
-        self.btn_values_layer = QPushButton("Load from layer")
-        self.btn_values_layer.setToolTip("May be slow for large layers")
-        self.btn_values_layer.clicked.connect(lambda: self._populate_filter_values(source="layer"))
+        search_row.addWidget(self.global_search)
+        search_row.addWidget(self.category_search)
+        search_row.addStretch(1)
         
-        btn_layout.addWidget(self.btn_apply)
-        btn_layout.addWidget(self.btn_reset)
-        btn_layout.addSpacing(12)
-        btn_layout.addWidget(self.btn_values_decodes)
-        btn_layout.addWidget(self.btn_values_selection)
-        btn_layout.addWidget(self.btn_values_layer)
-        btn_layout.addStretch(1)
+        layout.addLayout(search_row)
         
-        layout.addLayout(btn_layout)
-        
-        # Active filters summary - create early to avoid AttributeError during signal setup
-        self.lbl_active_filters = QLabel("No filters applied")
-        self.lbl_active_filters.setWordWrap(True)
-        self.lbl_active_filters.setStyleSheet("color: #555; font-size: 11px;")
-        self.lbl_active_filters.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
-        layout.addWidget(self.lbl_active_filters)
-        
-        # Status label
-        self.lbl_status = QLabel("")
-        self.lbl_status.setStyleSheet("color: #555;")
-        layout.addWidget(self.lbl_status)
-        
-        # Guard flag to prevent signal handling during initialization
-        self._ui_ready = False
-        
-        # Filter boxes in scrollable splitter area
+        # Two-column layout for filters
         splitter = QSplitter(Qt.Horizontal)
-        left = QWidget()
-        right = QWidget()
-        left_l = QVBoxLayout()
-        right_l = QVBoxLayout()
-        left_l.setSpacing(6)
-        right_l.setSpacing(6)
+        splitter.setHandleWidth(1)
+        splitter.setStyleSheet(f"""
+            QSplitter::handle {{
+                background-color: {Colors.BORDER_DEFAULT};
+            }}
+        """)
         
+        left_col = QWidget()
+        right_col = QWidget()
+        left_layout = QVBoxLayout()
+        right_layout = QVBoxLayout()
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(8)
+        right_layout.setSpacing(8)
+        
+        # Distribute filters evenly
         half = (len(FILTER_CONCEPTS) + 1) // 2
         for idx, (concept, title) in enumerate(FILTER_CONCEPTS):
             box = CheckListFilterBox(title)
             box.list.itemChanged.connect(self._on_filter_changed)
             self.filter_boxes[concept] = box
-            (left_l if idx < half else right_l).addWidget(box)
+            
+            if idx < half:
+                left_layout.addWidget(box)
+            else:
+                right_layout.addWidget(box)
         
-        left_l.addStretch(1)
-        right_l.addStretch(1)
-        left.setLayout(left_l)
-        right.setLayout(right_l)
-        splitter.addWidget(left)
-        splitter.addWidget(right)
+        left_layout.addStretch(1)
+        right_layout.addStretch(1)
+        
+        left_col.setLayout(left_layout)
+        right_col.setLayout(right_layout)
+        
+        splitter.addWidget(left_col)
+        splitter.addWidget(right_col)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
+        splitter.setSizes([200, 200])
         
-        # Make filter area scrollable
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(splitter, 1)
         
-        filter_container = QWidget()
-        filter_layout = QVBoxLayout()
-        filter_layout.setContentsMargins(0, 0, 0, 0)
-        filter_layout.addWidget(splitter)
-        filter_container.setLayout(filter_layout)
-        scroll.setWidget(filter_container)
+        content.setLayout(layout)
+        section.set_content(content)
         
-        layout.addWidget(scroll, 1)
-        
-        self.setLayout(layout)
-        self._ui_ready = True  # Mark UI as ready to process signals
+        return section
     
     def _default_last_full_10y_range(self) -> Tuple[QDate, QDate]:
         today = QDate.currentDate()
@@ -256,11 +456,35 @@ class FilterPanel(QWidget):
         start = QDate(end_year - 9, 1, 1)
         return start, end
     
+    def _set_date_preset(self, years: int):
+        """Set date range to last N full years."""
+        today = QDate.currentDate()
+        end_year = today.year() - 1
+        end = QDate(end_year, 12, 31)
+        start = QDate(end_year - years + 1, 1, 1)
+        
+        self.date_start.setDate(start)
+        self.date_end.setDate(end)
+        self.chk_use_date.setChecked(True)
+    
     def set_layer(self, layer, field_map: Dict[str, str], decodes: DecodeRegistry) -> None:
         """Set the current layer and refresh filter values."""
         self.layer = layer
         self.field_map = field_map
         self.decodes = decodes
+        
+        # Update selection info
+        if layer:
+            selected_count = layer.selectedFeatureCount()
+            if selected_count > 0:
+                self.selection_info.setText(f"{selected_count} features selected on map")
+                self.selection_info.setStyleSheet(f"color: {Colors.ACCENT_SUCCESS};")
+            else:
+                self.selection_info.setText("No features selected on map")
+                self.selection_info.setStyleSheet(f"color: {Colors.TEXT_MUTED};")
+        else:
+            self.selection_info.setText("No layer selected")
+            self.selection_info.setStyleSheet(f"color: {Colors.TEXT_MUTED};")
         
         if layer is None:
             self.reset_all_filters()
@@ -271,12 +495,11 @@ class FilterPanel(QWidget):
         else:
             self._populate_filter_values(source="decodes")
     
-    def _on_filter_changed(self, *_):
+    def _on_filter_changed(self, *_) -> None:
         """Handle filter change - debounce auto-apply."""
-        # Guard against calls during initialization
         if not getattr(self, '_ui_ready', False):
             return
-            
+        
         self._update_active_filters_summary()
         
         if self.filters_changed:
@@ -285,6 +508,7 @@ class FilterPanel(QWidget):
         if self.layer is None:
             return
         
+        # Auto-apply if selection-based
         if self.chk_selection_only.isChecked() and self.layer.selectedFeatureCount() > 0:
             QTimer.singleShot(150, self.apply_filters)
     
@@ -451,20 +675,28 @@ class FilterPanel(QWidget):
             self.filtered_fids = []
             self.filtered_rows = []
             self.refresh_filter_counts()
-            self.lbl_status.setText("Idle: select features on map or set a filter, then Apply.")
+            
+            if self.status_changed:
+                self.status_changed("idle", "Set filters or select features to analyze")
             if self.filters_applied:
                 self.filters_applied([], [], 0)
             return
         
         if spec.selection_only and not spec.selected_fids and spec.has_any_intent(default_start, default_end):
-            QMessageBox.information(
+            reply = QMessageBox.question(
                 self, "Collision Analytics",
                 "No map selection, but filters are set.\n\n"
-                "Running analysis on the whole layer for the active filters."
+                "Analyze the entire layer for the active filters?",
+                QMessageBox.Yes | QMessageBox.No
             )
+            if reply != QMessageBox.Yes:
+                return
         
         feature_count = self.layer.featureCount()
         needed = self._needed_fields(spec)
+        
+        if self.status_changed:
+            self.status_changed("processing", f"Processing {feature_count:,} features...")
         
         if feature_count >= BACKGROUND_FILTER_THRESHOLD:
             self._run_background_filter(spec, needed, feature_count)
@@ -490,7 +722,6 @@ class FilterPanel(QWidget):
         task.taskTerminated.connect(lambda *_, t=task: self._on_filter_failed(t))
         
         self._active_filter_task = task
-        self.lbl_status.setText(f"Filtering {feature_count:,} collisions...")
         QgsApplication.taskManager().addTask(task)
     
     def _update_progress_from_task(self, task: FilterTask) -> None:
@@ -508,7 +739,8 @@ class FilterPanel(QWidget):
         self.btn_apply.setEnabled(True)
         
         if self.layer is None or task.layer != self.layer:
-            self.lbl_status.setText("Layer changed during filtering; results ignored.")
+            if self.status_changed:
+                self.status_changed("warning", "Layer changed during filtering")
             return
         
         if task.exception:
@@ -529,7 +761,9 @@ class FilterPanel(QWidget):
         
         exc = task.exception or Exception("Filtering task failed.")
         QgsMessageLog.logMessage(str(exc), "Collision Analytics", Qgis.Critical)
-        self.lbl_status.setText(f"Filtering failed: {exc}")
+        
+        if self.status_changed:
+            self.status_changed("error", f"Filtering failed: {exc}")
     
     def _run_sync_filter(self, spec: FilterSpec, needed: List[str], feature_count: int) -> None:
         """Run filtering synchronously for smaller datasets."""
@@ -546,34 +780,54 @@ class FilterPanel(QWidget):
             self.layer.selectByIds(fids)
         
         self.refresh_filter_counts()
-        self.lbl_status.setText(f"Matched {len(fids)} of {total_count} features.")
         self._update_active_filters_summary()
+        
+        if self.status_changed:
+            self.status_changed("active", f"Showing {len(fids):,} of {total_count:,} features")
         
         if self.filters_applied:
             self.filters_applied(fids, rows, total_count)
     
     def _update_active_filters_summary(self) -> None:
-        """Update the active filters summary label."""
-        lines: List[str] = []
+        """Update the active filters summary with pills."""
+        pills = []
         
         if self.chk_use_date.isChecked() and self._date_intent():
             ds = self.date_start.date()
             de = self.date_end.date()
-            lines.append(f"Date: {ds.toString('yyyy-MM-dd')} → {de.toString('yyyy-MM-dd')}")
+            pills.append((f"📅 {ds.toString('yyyy-MM-dd')} → {de.toString('yyyy-MM-dd')}", "info"))
+        
+        if self.chk_selection_only.isChecked():
+            if self.layer:
+                count = self.layer.selectedFeatureCount()
+                if count > 0:
+                    pills.append((f"🎯 {count} selected on map", "success"))
         
         if self.decodes:
             for concept_key, box in self.filter_boxes.items():
                 codes = box.selected_codes()
                 if not codes:
                     continue
-                labels = {self.decodes.decode(concept_key, c) for c in codes}
                 title = self._concept_titles.get(concept_key, concept_key)
-                lines.append(f"{title}: {', '.join(sorted(labels, key=lambda s: s.lower()))}")
+                if len(codes) == 1:
+                    label = self.decodes.decode(concept_key, list(codes)[0])
+                    pills.append((f"{title}: {label}", "primary"))
+                else:
+                    pills.append((f"{title}: {len(codes)} selected", "primary"))
         
-        if not lines:
-            self.lbl_active_filters.setText("No filters applied")
+        # Clear existing pills
+        while self.filters_layout.count() > 1:  # Keep stretch
+            item = self.filters_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        if pills:
+            self.empty_filters_label.setVisible(False)
+            for text, variant in pills:
+                badge = Badge(text, variant)
+                self.filters_layout.insertWidget(self.filters_layout.count() - 1, badge)
         else:
-            self.lbl_active_filters.setText(" • ".join(lines))
+            self.empty_filters_label.setVisible(True)
     
     def reset_all_filters(self) -> None:
         """Reset all filters to default state."""
@@ -591,7 +845,6 @@ class FilterPanel(QWidget):
         self.filtered_fids = []
         self.filtered_rows = []
         self.refresh_filter_counts()
-        self.lbl_status.setText("")
         self._update_active_filters_summary()
         
         if self.filters_applied:
@@ -616,7 +869,6 @@ class FilterPanel(QWidget):
         if box is None or self.decodes is None:
             return False
         
-        # Resolve label to codes
         codes = self._resolve_codes_from_label(concept_key, label)
         if not codes:
             return False
@@ -624,14 +876,12 @@ class FilterPanel(QWidget):
         box.list.blockSignals(True)
         
         if not additive:
-            # Clear other selections
             for i in range(box.list.count()):
                 it = box.list.item(i)
                 code = safe_str(it.data(Qt.UserRole)).strip()
                 if code not in codes and it.checkState() != Qt.Unchecked:
                     it.setCheckState(Qt.Unchecked)
         
-        # Check matching items
         changed = False
         for i in range(box.list.count()):
             it = box.list.item(i)
@@ -661,32 +911,26 @@ class FilterPanel(QWidget):
         if not target:
             return []
         
-        # Build normalized mapping
         normalized = {code: self._normalize_label_for_match(lab) for code, lab in mapping.items()}
         
-        # Try exact match
         for code, norm in normalized.items():
             if norm == target:
                 return [code]
         
-        # Case-insensitive
         target_lower = target.lower()
         matches = [code for code, norm in normalized.items() if norm.lower() == target_lower]
         if matches:
             return matches
         
-        # Fuzzy prefix match
         fuzzy = [code for code, norm in normalized.items() 
                  if norm.lower().startswith(target_lower) or target_lower.startswith(norm.lower())]
         if fuzzy:
             return fuzzy
         
-        # Direct code match
         direct = [code for code in mapping.keys() if self._normalize_label_for_match(code).lower() == target_lower]
         if direct:
             return direct
         
-        # Unknown/blank handling
         if target_lower in {"unknown", "unknown / blank", "unknown/blank", "blank"}:
             return [""]
         
@@ -695,6 +939,6 @@ class FilterPanel(QWidget):
     def _normalize_label_for_match(self, label: str) -> str:
         """Normalize a label for matching."""
         text = safe_str(label).replace("\n", " ")
-        text = re.sub(r"\s*\(\s*[\d,]+\s*\)\s*$", "", text)  # Strip count suffix
-        text = " ".join(text.split())  # Collapse whitespace
+        text = re.sub(r"\s*\(\s*[\d,]+\s*\)\s*$", "", text)
+        text = " ".join(text.split())
         return text.strip()

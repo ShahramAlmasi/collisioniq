@@ -1,10 +1,10 @@
-"""Results Panel - Charts and summary statistics with virtual scrolling."""
+"""Results Panel - Modern charts with virtual scrolling and better organization."""
 from __future__ import annotations
 
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import (
@@ -12,8 +12,6 @@ from qgis.PyQt.QtWidgets import (
     QComboBox,
     QFileDialog,
     QFrame,
-    QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -27,6 +25,15 @@ from qgis.PyQt.QtWidgets import (
 from ...core import charts as charts_mod
 from ...core.decodes import DecodeRegistry
 from ...core.utils import safe_str, to_datetime
+from ..modern_widgets import (
+    Badge,
+    Card,
+    Colors,
+    EmptyState,
+    IconButton,
+    SegmentedControl,
+    Typography,
+)
 
 
 @dataclass
@@ -35,6 +42,7 @@ class VirtualChartCard:
     title: str
     render_fn: Callable
     concept_key: Optional[str] = None
+    category: str = ""  # For grouping
     widget: Optional[QWidget] = None
     canvas: Optional[Any] = None
     figure: Optional[Any] = None
@@ -49,15 +57,18 @@ class VirtualChartScrollArea(QScrollArea):
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setFrameStyle(QFrame.NoFrame)
+        self.setStyleSheet("background: transparent;")
         
         self.chart_cards: List[VirtualChartCard] = []
-        self.render_margin = 200  # Pixels below viewport to trigger render
+        self.render_margin = 300
         
         # Container widget
         self.container = QWidget()
+        self.container.setStyleSheet("background: transparent;")
         self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(8, 8, 8, 8)
-        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(16)
         self.container.setLayout(self.layout)
         self.setWidget(self.container)
         
@@ -74,41 +85,98 @@ class VirtualChartScrollArea(QScrollArea):
                 w.setParent(None)
                 w.deleteLater()
     
-    def add_chart_section(self, title: str, charts: List[Tuple[str, Callable, Optional[str]]]) -> None:
-        """Add a section of charts."""
-        sec = QGroupBox(title)
-        sec_l = QVBoxLayout()
-        sec.setLayout(sec_l)
-        
-        for chart_title, render_fn, concept_key in charts:
-            card = self._create_chart_card(chart_title, render_fn, concept_key)
-            sec_l.addWidget(card.widget)
-            self.chart_cards.append(card)
-        
-        self.layout.addWidget(sec)
+    def add_chart_card(self, title: str, render_fn: Callable, 
+                       concept_key: Optional[str] = None, category: str = "") -> None:
+        """Add a single chart card."""
+        card = self._create_chart_card(title, render_fn, concept_key, category)
+        self.layout.addWidget(card.widget)
+        self.chart_cards.append(card)
     
-    def _create_chart_card(self, title: str, render_fn: Callable, concept_key: Optional[str]) -> VirtualChartCard:
-        """Create a chart card widget (initially empty)."""
-        box = QGroupBox(title)
-        box_l = QVBoxLayout()
-        box.setLayout(box_l)
+    def add_section_header(self, title: str, description: str = "") -> None:
+        """Add a section header."""
+        header = QWidget()
+        header.setStyleSheet("background: transparent;")
         
-        # Placeholder label
-        placeholder = QLabel("Scroll into view to render...")
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 8, 0, 4)
+        layout.setSpacing(4)
+        
+        title_label = QLabel(title)
+        title_label.setStyleSheet(f"""
+            font-size: {Typography.LG}px;
+            font-weight: 600;
+            color: {Colors.TEXT_PRIMARY};
+        """)
+        
+        layout.addWidget(title_label)
+        
+        if description:
+            desc_label = QLabel(description)
+            desc_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
+            layout.addWidget(desc_label)
+        
+        header.setLayout(layout)
+        self.layout.addWidget(header)
+    
+    def _create_chart_card(self, title: str, render_fn: Callable, 
+                          concept_key: Optional[str], category: str) -> VirtualChartCard:
+        """Create a chart card widget (initially empty)."""
+        box = Card()
+        box.setStyleSheet(f"""
+            Card {{
+                background-color: {Colors.BG_SECONDARY};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+                border-radius: 12px;
+                padding: 16px;
+            }}
+        """)
+        
+        box_l = QVBoxLayout()
+        box_l.setSpacing(12)
+        
+        # Header with title and interaction hint
+        header = QHBoxLayout()
+        
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet(f"""
+            font-weight: 600;
+            color: {Colors.TEXT_PRIMARY};
+            font-size: {Typography.BASE}px;
+        """)
+        
+        hint = QLabel("💡 Click bars to filter")
+        hint.setStyleSheet(f"color: {Colors.TEXT_MUTED}; font-size: {Typography.XS}px;")
+        hint.setVisible(bool(concept_key))
+        
+        header.addWidget(title_lbl)
+        header.addStretch(1)
+        header.addWidget(hint)
+        
+        box_l.addLayout(header)
+        
+        # Placeholder
+        placeholder = QLabel("📊 Scroll into view to render...")
         placeholder.setAlignment(Qt.AlignCenter)
-        placeholder.setStyleSheet("color: #999; padding: 40px;")
+        placeholder.setStyleSheet(f"""
+            color: {Colors.TEXT_MUTED};
+            padding: 60px;
+            font-size: {Typography.LG}px;
+        """)
         box_l.addWidget(placeholder)
+        
+        box.setLayout(box_l)
         
         return VirtualChartCard(
             title=title,
             render_fn=render_fn,
             concept_key=concept_key,
+            category=category,
             widget=box,
         )
     
     def _on_scroll(self) -> None:
         """Handle scroll events to trigger lazy rendering."""
-        QTimer.singleShot(50, self._render_visible_charts)
+        QTimer.singleShot(100, self._render_visible_charts)
     
     def _render_visible_charts(self) -> None:
         """Render charts that are visible or near viewport."""
@@ -123,7 +191,6 @@ class VirtualChartScrollArea(QScrollArea):
             widget_top = widget_rect.y() - scroll_y
             widget_bottom = widget_top + widget_rect.height()
             
-            # Check if widget is visible or within render margin
             if widget_bottom >= -self.render_margin and widget_top <= viewport_rect.height() + self.render_margin:
                 self._render_chart(card)
     
@@ -134,17 +201,17 @@ class VirtualChartScrollArea(QScrollArea):
         
         # Clear placeholder
         box_l = card.widget.layout()
-        while box_l.count():
-            item = box_l.takeAt(0)
+        while box_l.count() > 1:  # Keep header
+            item = box_l.takeAt(1)
             w = item.widget()
             if w is not None:
                 w.setParent(None)
                 w.deleteLater()
         
         # Create figure and canvas
-        fig = charts_mod.Figure(figsize=(9.0, 3.2))
+        fig = charts_mod.Figure(figsize=(8.0, 3.0))
         canvas = charts_mod.FigureCanvas(fig)
-        canvas.setMinimumHeight(320)
+        canvas.setMinimumHeight(280)
         canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         card.figure = fig
@@ -164,7 +231,6 @@ class VirtualChartScrollArea(QScrollArea):
             ax = card.figure.add_subplot(111)
             
             try:
-                # Allow renderers to receive the canvas for click wiring
                 card.render_fn(ax, rows=rows, field_map=field_map, decodes=decodes,
                               top_n=top_n, show_labels=show_labels, canvas=card.canvas)
             except TypeError:
@@ -175,7 +241,7 @@ class VirtualChartScrollArea(QScrollArea):
                     card.render_fn(ax)
             except Exception as e:
                 ax.text(0.5, 0.5, f"Chart error:\n{e}", ha="center", va="center",
-                       transform=ax.transAxes)
+                       transform=ax.transAxes, color="white")
                 ax.set_axis_off()
             
             card.figure.tight_layout()
@@ -207,7 +273,6 @@ class VirtualChartScrollArea(QScrollArea):
         if not ticks:
             ticks = list(range(len(labels)))
         
-        # Build targets from patches
         targets = []
         for patch in ax.patches:
             try:
@@ -244,7 +309,6 @@ class VirtualChartScrollArea(QScrollArea):
             if label is None:
                 return
             
-            # Check for control modifier
             additive = False
             ge = getattr(event, "guiEvent", None)
             try:
@@ -255,7 +319,6 @@ class VirtualChartScrollArea(QScrollArea):
             
             handler(concept_key, label, additive)
         
-        # Disconnect any existing handler
         cid = getattr(canvas, "_collision_click_cid", None)
         if cid is not None:
             try:
@@ -275,12 +338,10 @@ class VirtualChartScrollArea(QScrollArea):
         if charts_mod.Figure is None:
             raise RuntimeError("matplotlib is not available")
         
-        # Ensure all charts are rendered
         for card in self.chart_cards:
             if not card.is_rendered:
                 self._render_chart(card)
         
-        # Now render with data
         self.render_all(rows, field_map, decodes, top_n, show_labels)
         
         cols = 2
@@ -301,11 +362,11 @@ class VirtualChartScrollArea(QScrollArea):
                 ax.set_axis_off()
         
         fig.tight_layout()
-        fig.savefig(path, dpi=200)
+        fig.savefig(path, dpi=200, facecolor=Colors.BG_SECONDARY)
 
 
 class ResultsPanel(QWidget):
-    """Panel containing charts and summary statistics."""
+    """Modern panel containing charts and summary statistics."""
     
     chart_clicked = None  # Callback: (concept_key, label, additive) -> None
     
@@ -317,60 +378,101 @@ class ResultsPanel(QWidget):
         self.filtered_rows: List[Dict[str, Any]] = []
         
         self.top_n_default = 12
-        self.chart_height_default = 320
+        self.chart_height_default = 280
         
         self._build_ui()
         self._init_charts()
     
     def _build_ui(self) -> None:
+        """Build modern results UI."""
         layout = QVBoxLayout()
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
         
-        # Controls
-        ctrl_layout = QHBoxLayout()
+        # ===== Control Bar =====
+        controls = self._build_control_bar()
+        layout.addWidget(controls)
         
-        self.btn_export_csv = QPushButton("Export summary CSV")
-        self.btn_export_csv.clicked.connect(self.export_summary_csv)
-        
-        self.btn_export_features_csv = QPushButton("Export features CSV")
-        self.btn_export_features_csv.clicked.connect(self.export_filtered_features_csv)
-        
-        self.btn_export_dashboard_png = QPushButton("Export dashboard PNG")
-        self.btn_export_dashboard_png.clicked.connect(self.export_dashboard_png)
-        
-        ctrl_layout.addWidget(self.btn_export_csv)
-        ctrl_layout.addWidget(self.btn_export_features_csv)
-        ctrl_layout.addWidget(self.btn_export_dashboard_png)
-        
-        ctrl_layout.addSpacing(20)
-        
-        ctrl_layout.addWidget(QLabel("Top N:"))
-        self.cbo_top_n = QComboBox()
-        self.cbo_top_n.addItems(["8", "12", "15", "20"])
-        self.cbo_top_n.setCurrentText(str(self.top_n_default))
-        self.cbo_top_n.currentIndexChanged.connect(self.update_view)
-        
-        self.chk_value_labels = QCheckBox("Show value labels")
-        self.chk_value_labels.setChecked(True)
-        self.chk_value_labels.stateChanged.connect(self.update_view)
-        
-        ctrl_layout.addWidget(self.cbo_top_n)
-        ctrl_layout.addWidget(self.chk_value_labels)
-        ctrl_layout.addStretch(1)
-        
-        layout.addLayout(ctrl_layout)
-        
-        # Chart scroll area
+        # ===== Chart Scroll Area =====
         if charts_mod.FigureCanvas is not None:
             self.chart_scroll = VirtualChartScrollArea()
             layout.addWidget(self.chart_scroll, 1)
+            
+            # Empty state
+            self.empty_state = EmptyState(
+                "📈",
+                "No Charts to Display",
+                "Apply filters to generate charts and visualizations."
+            )
+            self.empty_state.setVisible(False)
+            layout.addWidget(self.empty_state)
         else:
-            msg = QLabel("matplotlib is not available. Charts are disabled.")
+            msg = QLabel("⚠️ matplotlib is not available. Charts are disabled.")
             msg.setWordWrap(True)
+            msg.setStyleSheet(f"color: {Colors.ACCENT_WARNING};")
             layout.addWidget(msg)
             self.chart_scroll = None
         
         self.setLayout(layout)
+    
+    def _build_control_bar(self) -> QWidget:
+        """Build control bar with export and display options."""
+        bar = QWidget()
+        bar.setStyleSheet(f"""
+            background-color: {Colors.BG_SECONDARY};
+            border-radius: 8px;
+        """)
+        
+        layout = QHBoxLayout()
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(12)
+        
+        # Export buttons
+        export_label = QLabel("Export:")
+        export_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
+        
+        self.btn_export_csv = QPushButton("📊 CSV Summary")
+        self.btn_export_csv.setToolTip("Export summary statistics to CSV")
+        self.btn_export_csv.clicked.connect(self.export_summary_csv)
+        self.btn_export_csv.setStyleSheet(f"padding: 6px 12px; font-size: {Typography.XS}px;")
+        
+        self.btn_export_features = QPushButton("📋 Features CSV")
+        self.btn_export_features.setToolTip("Export filtered features to CSV")
+        self.btn_export_features.clicked.connect(self.export_filtered_features_csv)
+        self.btn_export_features.setStyleSheet(f"padding: 6px 12px; font-size: {Typography.XS}px;")
+        
+        self.btn_export_png = QPushButton("🖼️ Dashboard PNG")
+        self.btn_export_png.setToolTip("Export all charts to PNG")
+        self.btn_export_png.clicked.connect(self.export_dashboard_png)
+        self.btn_export_png.setStyleSheet(f"padding: 6px 12px; font-size: {Typography.XS}px;")
+        
+        # Display options
+        display_label = QLabel("Display:")
+        display_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
+        
+        self.cbo_top_n = QComboBox()
+        self.cbo_top_n.addItems(["8", "12", "15", "20", "All"])
+        self.cbo_top_n.setCurrentText(str(self.top_n_default))
+        self.cbo_top_n.setFixedWidth(60)
+        self.cbo_top_n.currentIndexChanged.connect(self.update_view)
+        
+        self.chk_value_labels = QCheckBox("Values")
+        self.chk_value_labels.setChecked(True)
+        self.chk_value_labels.stateChanged.connect(self.update_view)
+        
+        layout.addWidget(export_label)
+        layout.addWidget(self.btn_export_csv)
+        layout.addWidget(self.btn_export_features)
+        layout.addWidget(self.btn_export_png)
+        layout.addSpacing(20)
+        layout.addWidget(display_label)
+        layout.addWidget(QLabel("Top:"))
+        layout.addWidget(self.cbo_top_n)
+        layout.addWidget(self.chk_value_labels)
+        layout.addStretch(1)
+        
+        bar.setLayout(layout)
+        return bar
     
     def _init_charts(self) -> None:
         """Initialize chart definitions."""
@@ -379,38 +481,47 @@ class ResultsPanel(QWidget):
         
         self.chart_scroll.clear_charts()
         
-        # Chart definitions with their render functions and concept keys
-        sections = [
-            ("Temporal (by accident class)", [
-                ("Collisions by year", self._render_year_by_class, "year"),
-                ("Collisions by month", self._render_month_by_class, "month"),
-                ("Collisions by day of week", self._render_dow_by_class, "dow"),
-                ("Collisions by hour of day", self._render_hour_by_class, "hour"),
-            ]),
-            ("Core breakdowns", [
-                ("Accident class (severity)", self._render_accident_class, "accident_class"),
-                ("Impact type by accident class", self._render_impact_by_class, "impact_type"),
-                ("Environment condition 1", self._render_env1, "env1"),
-                ("Environment condition 2", self._render_env2, "env2"),
-                ("Environment combos", self._render_env_combo, "env_combo"),
-                ("Lighting", self._render_light, "light"),
-            ]),
-            ("Prioritization", [
-                ("Pareto: Impact type concentration", self._render_pareto_impact, None),
-            ]),
-            ("Other breakdowns", [
-                ("Location type", self._render_location_type, "location_type"),
-                ("Municipality", self._render_municipality, "municipality"),
-                ("Accident location context", self._render_accident_location, "accident_location"),
-                ("Impact location", self._render_impact_location, "impact_location"),
-                ("Traffic control", self._render_traffic_control, "traffic_control"),
-                ("Traffic control condition", self._render_traffic_control_condition, "traffic_control_condition"),
-                ("Road jurisdiction", self._render_road_jurisdiction, "road_jurisdiction"),
-            ]),
-        ]
+        # Section: Temporal
+        self.chart_scroll.add_section_header(
+            "📅 Temporal Analysis",
+            "Collision trends over time"
+        )
+        self.chart_scroll.add_chart_card("Collisions by Year", self._render_year_by_class, "year")
+        self.chart_scroll.add_chart_card("Collisions by Month", self._render_month_by_class, "month")
+        self.chart_scroll.add_chart_card("Day of Week Pattern", self._render_dow_by_class, "dow")
+        self.chart_scroll.add_chart_card("Hour of Day", self._render_hour_by_class, "hour")
         
-        for section_title, charts in sections:
-            self.chart_scroll.add_chart_section(section_title, charts)
+        # Section: Core Breakdowns
+        self.chart_scroll.add_section_header(
+            "🎯 Core Breakdowns",
+            "Key collision characteristics"
+        )
+        self.chart_scroll.add_chart_card("Severity (Accident Class)", self._render_accident_class, "accident_class")
+        self.chart_scroll.add_chart_card("Impact Type by Severity", self._render_impact_by_class, "impact_type")
+        self.chart_scroll.add_chart_card("Environment Condition 1", self._render_env1, "env1")
+        self.chart_scroll.add_chart_card("Environment Condition 2", self._render_env2, "env2")
+        self.chart_scroll.add_chart_card("Environment Combinations", self._render_env_combo, "env_combo")
+        self.chart_scroll.add_chart_card("Lighting Conditions", self._render_light, "light")
+        
+        # Section: Prioritization
+        self.chart_scroll.add_section_header(
+            "📊 Prioritization",
+            "Pareto analysis for focused improvements"
+        )
+        self.chart_scroll.add_chart_card("Impact Type Pareto", self._render_pareto_impact, None)
+        
+        # Section: Geographic
+        self.chart_scroll.add_section_header(
+            "🗺️ Geographic & Infrastructure",
+            "Location and control analysis"
+        )
+        self.chart_scroll.add_chart_card("Municipality", self._render_municipality, "municipality")
+        self.chart_scroll.add_chart_card("Location Type", self._render_location_type, "location_type")
+        self.chart_scroll.add_chart_card("Accident Location Context", self._render_accident_location, "accident_location")
+        self.chart_scroll.add_chart_card("Impact Location", self._render_impact_location, "impact_location")
+        self.chart_scroll.add_chart_card("Traffic Control", self._render_traffic_control, "traffic_control")
+        self.chart_scroll.add_chart_card("Traffic Control Condition", self._render_traffic_control_condition, "traffic_control_condition")
+        self.chart_scroll.add_chart_card("Road Jurisdiction", self._render_road_jurisdiction, "road_jurisdiction")
     
     def set_data(self, field_map: Dict[str, str], decodes: DecodeRegistry) -> None:
         """Set field map and decodes registry."""
@@ -420,6 +531,10 @@ class ResultsPanel(QWidget):
     def update_results(self, rows: List[Dict[str, Any]]) -> None:
         """Update results with new filtered rows."""
         self.filtered_rows = rows
+        
+        if self.empty_state:
+            self.empty_state.setVisible(not bool(rows))
+        
         self.update_view()
     
     def update_view(self) -> None:
@@ -427,13 +542,13 @@ class ResultsPanel(QWidget):
         if self.chart_scroll is None or not self.decodes:
             return
         
-        top_n = int(self.cbo_top_n.currentText())
+        top_n_str = self.cbo_top_n.currentText()
+        top_n = 999 if top_n_str == "All" else int(top_n_str)
         show_labels = self.chk_value_labels.isChecked()
         
         self.chart_scroll.render_all(self.filtered_rows, self.field_map, 
                                      self.decodes, top_n, show_labels)
         
-        # Install click handlers
         if self.chart_clicked:
             self.chart_scroll.install_click_handlers(self.chart_clicked)
     
@@ -575,7 +690,7 @@ class ResultsPanel(QWidget):
     def export_summary_csv(self) -> None:
         """Export summary statistics to CSV."""
         if not self.filtered_rows:
-            QMessageBox.information(self, "Collision Analytics", "No filtered results to export.")
+            QMessageBox.information(self, "Export", "No filtered results to export.")
             return
         
         path, _ = QFileDialog.getSaveFileName(self, "Export summary CSV", "", "CSV (*.csv)")
@@ -612,31 +727,28 @@ class ResultsPanel(QWidget):
             w.writerow(["metric", "value"])
             w.writerows(rows)
         
-        QMessageBox.information(self, "Collision Analytics", f"Saved:\n{path}")
+        QMessageBox.information(self, "Export", f"✅ Saved:\n{path}")
     
     def export_filtered_features_csv(self) -> None:
         """Export filtered features to CSV with decoded values."""
         if not self.filtered_rows:
-            QMessageBox.information(self, "Collision Analytics", "No filtered results to export.")
+            QMessageBox.information(self, "Export", "No filtered results to export.")
             return
         
         path, _ = QFileDialog.getSaveFileName(self, "Export features CSV", "", "CSV (*.csv)")
         if not path:
             return
         
-        # Collect all fields
         all_fields = set()
         for row in self.filtered_rows:
             all_fields.update(row.keys())
         all_fields = sorted(all_fields)
         
-        # Map fields to concepts
         field_to_concept: Dict[str, str] = {}
         for concept_key, field_name in self.field_map.items():
             if field_name in all_fields:
                 field_to_concept[field_name] = concept_key
         
-        # Build headers with decoded columns
         headers = []
         concepts_with_decodes = set(self.decodes.keys()) if self.decodes else set()
         
@@ -646,7 +758,6 @@ class ResultsPanel(QWidget):
             if concept_key and concept_key in concepts_with_decodes:
                 headers.append(f"{field}_decoded")
         
-        # Build rows
         import csv
         from datetime import date, datetime
         
@@ -655,7 +766,6 @@ class ResultsPanel(QWidget):
             csv_row = []
             for field in all_fields:
                 raw_value = row.get(field)
-                # Format value
                 if raw_value is None:
                     formatted = ""
                 elif isinstance(raw_value, (date, datetime)):
@@ -670,7 +780,6 @@ class ResultsPanel(QWidget):
                 
                 csv_row.append(formatted)
                 
-                # Add decoded value
                 concept_key = field_to_concept.get(field)
                 if concept_key and self.decodes and concept_key in concepts_with_decodes:
                     decoded = self.decodes.decode(concept_key, raw_value)
@@ -683,17 +792,16 @@ class ResultsPanel(QWidget):
             w.writerow(headers)
             w.writerows(csv_rows)
         
-        QMessageBox.information(self, "Collision Analytics", 
-                               f"Exported {len(csv_rows)} features to:\n{path}")
+        QMessageBox.information(self, "Export", f"✅ Exported {len(csv_rows)} features to:\n{path}")
     
     def export_dashboard_png(self) -> None:
         """Export dashboard to PNG."""
         if self.chart_scroll is None:
-            QMessageBox.warning(self, "Collision Analytics", "Charts are not available.")
+            QMessageBox.warning(self, "Export", "Charts are not available.")
             return
         
         if not self.filtered_rows:
-            QMessageBox.information(self, "Collision Analytics", "No data to export.")
+            QMessageBox.information(self, "Export", "No data to export.")
             return
         
         path, _ = QFileDialog.getSaveFileName(self, "Export dashboard PNG", "", "PNG (*.png)")
@@ -701,21 +809,25 @@ class ResultsPanel(QWidget):
             return
         
         try:
-            top_n = int(self.cbo_top_n.currentText())
+            top_n_str = self.cbo_top_n.currentText()
+            top_n = 999 if top_n_str == "All" else int(top_n_str)
             show_labels = self.chk_value_labels.isChecked()
             
             self.chart_scroll.export_to_png(
                 path, top_n, show_labels,
                 self.filtered_rows, self.field_map, self.decodes
             )
-            QMessageBox.information(self, "Collision Analytics", f"Saved:\n{path}")
+            QMessageBox.information(self, "Export", f"✅ Saved:\n{path}")
         except Exception as e:
-            QMessageBox.warning(self, "Collision Analytics", f"Export failed:\n{e}")
+            QMessageBox.warning(self, "Export", f"❌ Export failed:\n{e}")
     
     def set_idle_state(self) -> None:
         """Set charts to idle state."""
         if self.chart_scroll is None:
             return
+        
+        if self.empty_state:
+            self.empty_state.setVisible(True)
         
         for card in self.chart_scroll.chart_cards:
             if card.figure:
@@ -723,10 +835,13 @@ class ResultsPanel(QWidget):
                 ax = card.figure.add_subplot(111)
                 ax.text(
                     0.5, 0.5,
-                    "Select collisions on the map\n(or disable selection scope),\nthen click Apply.",
+                    "Apply filters to view charts",
                     ha="center", va="center", transform=ax.transAxes,
+                    color="white", fontsize=12
                 )
                 ax.set_axis_off()
+                ax.set_facecolor(Colors.BG_SECONDARY)
+                card.figure.set_facecolor(Colors.BG_SECONDARY)
                 card.figure.tight_layout()
                 if card.canvas:
                     card.canvas.draw()
