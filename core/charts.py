@@ -10,6 +10,22 @@ import numpy as np
 
 from .utils import safe_str, to_datetime, is_blank
 
+try:
+    from qgis.core import QgsMessageLog, Qgis
+except Exception:  # pragma: no cover
+    QgsMessageLog = None
+    Qgis = None
+
+
+def _debug_log(msg: str) -> None:
+    """Best-effort debug logging to QGIS message log."""
+    if QgsMessageLog is None or Qgis is None:
+        return
+    try:
+        QgsMessageLog.logMessage(msg, "Collision Analytics", Qgis.Info)
+    except Exception:
+        pass
+
 # Optional matplotlib (QGIS runs Qt; FigureCanvasQTAgg is the right target)
 try:
     import matplotlib
@@ -697,13 +713,22 @@ def render_temporal_by_class(
     bucket_counts: Dict[Any, Counter] = defaultdict(Counter)
     encountered_classes: Set[str] = set()
     has_time = False if bucket == "hour" else None
+    total_rows = len(rows)
+    parsed_dates = 0
+    time_component_rows = 0
+    sample_invalid_dates: List[str] = []
 
     for r in rows:
-        dt = to_datetime(r.get(date_field))
+        raw_dt = r.get(date_field)
+        dt = to_datetime(raw_dt)
         if dt is None:
+            if len(sample_invalid_dates) < 5:
+                sample_invalid_dates.append(safe_str(raw_dt))
             continue
+        parsed_dates += 1
         if bucket == "hour" and (dt.hour or dt.minute or dt.second):
             has_time = True
+            time_component_rows += 1
 
         if bucket == "year":
             bkey = dt.year
@@ -725,6 +750,15 @@ def render_temporal_by_class(
 
         encountered_classes.add(cls_label)
         bucket_counts[bkey][cls_label] += 1
+
+    if bucket == "hour":
+        _debug_log(
+            "[render_temporal_by_class/hour] "
+            f"rows={total_rows}, parsed_dates={parsed_dates}, "
+            f"time_component_rows={time_component_rows}, "
+            f"date_field={safe_str(date_field)}, class_field={safe_str(class_field)}, "
+            f"invalid_date_samples={sample_invalid_dates}"
+        )
 
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -764,6 +798,11 @@ def render_temporal_by_class(
         bucket_labels = [_format_hour_label_compact(h) for h in bucket_order]
         xlabel = "Hour of day"
         if not bucket_counts:
+            _debug_log(
+                "[render_temporal_by_class/hour] no bucket counts produced; "
+                f"rows={total_rows}, parsed_dates={parsed_dates}, "
+                f"invalid_date_samples={sample_invalid_dates}"
+            )
             ax.text(0.5, 0.5, "No date data available", ha="center", va="center",
                     transform=ax.transAxes, fontsize=11, color="#9CA3AF")
             ax.set_axis_off()

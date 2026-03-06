@@ -68,6 +68,8 @@ def to_datetime(value: Any) -> Optional[datetime]:
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d",
         "%Y/%m/%d",
+        "%m/%d/%Y",
+        "%m/%d/%y",
     ):
         try:
             return datetime.strptime(s, fmt)
