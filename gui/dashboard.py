@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class KPICard(QFrame):
     """KPI metric card with value and label."""
 
-    def __init__(self, title: str, parent: QWidget | None = None):
+    def __init__(self, title: str, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("kpiCard")
         self.setStyleSheet("""
@@ -60,7 +60,7 @@ class KPICard(QFrame):
         layout.addWidget(self._title_label)
         self.setLayout(layout)
 
-    def set_value(self, value: str, color: str | None = None) -> None:
+    def set_value(self, value: str, color: Optional[str] = None) -> None:
         """Set the KPI value with optional color."""
         self._value_label.setText(value)
         if color:
@@ -81,7 +81,7 @@ class ChartCard(QWidget):
         canvas: Any,
         render_fn: Callable,
         concept_key: Optional[str] = None,
-        parent: QWidget | None = None,
+        parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
         self.title = title
@@ -125,13 +125,13 @@ class FilterPanel(QWidget):
     """Collapsible filter panel for the left sidebar."""
 
     def __init__(
-        self, dock: CollisionAnalyticsDockWidget, parent: QWidget | None = None
+        self, dock: CollisionAnalyticsDockWidget, parent: Optional[QWidget] = None
     ):
         super().__init__(parent)
         self.dock = dock
         self._is_expanded = True
-        self._content_widget: QWidget | None = None
-        self._content_layout: QVBoxLayout | None = None
+        self._content_widget: Optional[QWidget] = None
+        self._content_layout: Optional[QVBoxLayout] = None
 
         self._build_ui()
 
@@ -161,7 +161,7 @@ class FilterPanel(QWidget):
             letter-spacing: 0.5px;
         """)
 
-        self._collapse_btn = QPushButton("◀")
+        self._collapse_btn = QPushButton("<")
         self._collapse_btn.setFixedSize(24, 24)
         self._collapse_btn.setStyleSheet("""
             QPushButton {
@@ -218,12 +218,12 @@ class FilterPanel(QWidget):
         if self._is_expanded:
             self.setMaximumWidth(400)
             self._content_widget.setVisible(True)
-            self._collapse_btn.setText("◀")
+            self._collapse_btn.setText("<")
             self._collapse_btn.setToolTip("Collapse filter panel")
         else:
             self.setMaximumWidth(40)
             self._content_widget.setVisible(False)
-            self._collapse_btn.setText("▶")
+            self._collapse_btn.setText(">")
             self._collapse_btn.setToolTip("Expand filter panel")
 
     def is_expanded(self) -> bool:
@@ -235,14 +235,14 @@ class DashboardWidget(QWidget):
     """Main dashboard widget with split layout."""
 
     def __init__(
-        self, dock: CollisionAnalyticsDockWidget, parent: QWidget | None = None
+        self, dock: CollisionAnalyticsDockWidget, parent: Optional[QWidget] = None
     ):
         super().__init__(parent)
         self.dock = dock
         self.kpi_cards: Dict[str, KPICard] = {}
         self.chart_cards: List[ChartCard] = []
-        self.chart_grid: QGridLayout | None = None
-        self.filter_panel: FilterPanel | None = None
+        self.chart_grid: Optional[QGridLayout] = None
+        self.filter_panel: Optional[FilterPanel] = None
 
         self._build_ui()
 
@@ -443,7 +443,7 @@ class DashboardWidget(QWidget):
         # Add stretch to bottom
         self.chart_grid.setRowStretch(self.chart_grid.rowCount(), 1)
 
-    def update_kpi(self, key: str, value: str, color: str | None = None) -> None:
+    def update_kpi(self, key: str, value: str, color: Optional[str] = None) -> None:
         """Update a KPI card value."""
         if key in self.kpi_cards:
             self.kpi_cards[key].set_value(value, color)

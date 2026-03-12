@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout
 
@@ -15,8 +15,8 @@ class BaseTab:
 
     def __init__(self, dock: CollisionAnalyticsDockWidget) -> None:
         self.dock = dock
-        self.tab_widget: QWidget | None = None
-        self._layout: QVBoxLayout | None = None
+        self.tab_widget: Optional[QWidget] = None
+        self._layout: Optional[QVBoxLayout] = None
 
     def build(self) -> QWidget:
         """Build and return the tab widget. Must be implemented by subclasses."""
@@ -38,27 +38,27 @@ class BaseTab:
     @property
     def layer(self):
         """Access the current layer from the dock widget."""
-        return self.dock.layer
+        return self.dock.controller.layer
 
     @property
     def field_map(self):
         """Access the field map from the dock widget."""
-        return self.dock.field_map
+        return self.dock.controller.field_map
 
     @property
     def filtered_rows(self):
         """Access filtered rows from the dock widget."""
-        return self.dock.filtered_rows
+        return self.dock.controller.filtered_rows
 
     @property
     def filtered_fids(self):
         """Access filtered feature IDs from the dock widget."""
-        return self.dock.filtered_fids
+        return self.dock.controller.filtered_fids
 
     @property
     def decodes(self):
         """Access the decode registry from the dock widget."""
-        return self.dock.decodes
+        return self.dock.controller.decodes
 
     def _make_scrollable(self, content: QWidget) -> QWidget:
         """Create a scrollable container for content."""

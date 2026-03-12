@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "qgis_integration: tests that require a real QGIS runtime",
+]

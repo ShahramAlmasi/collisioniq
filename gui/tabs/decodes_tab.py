@@ -31,9 +31,9 @@ class DecodesTab(BaseTab):
 
     def __init__(self, dock) -> None:
         super().__init__(dock)
-        self.decode_search: QLineEdit | None = None
-        self.decode_group_list: QListWidget | None = None
-        self.decode_table: QTableWidget | None = None
+        self.decode_search: Optional[QLineEdit] = None
+        self.decode_group_list: Optional[QListWidget] = None
+        self.decode_table: Optional[QTableWidget] = None
 
     def build(self) -> QWidget:
         """Build the decodes tab UI."""
@@ -240,13 +240,13 @@ class DecodesTab(BaseTab):
         QMessageBox.information(
             self.tab_widget, "Collision Analytics", f"Saved decode group: {key}"
         )
-        self.dock.populate_filter_values("decodes")
+        self.dock.controller.populate_filter_values("decodes")
 
     def _reset_all_decodes(self) -> None:
         """Reset all decode groups to defaults."""
         self.decodes.reset_to_defaults()
         self._populate_decode_group_list()
-        self.dock.populate_filter_values("decodes")
+        self.dock.controller.populate_filter_values("decodes")
         QMessageBox.information(
             self.tab_widget,
             "Collision Analytics",
@@ -286,7 +286,7 @@ class DecodesTab(BaseTab):
                     )
             self.decodes.save()
             self._populate_decode_group_list()
-            self.dock.populate_filter_values("decodes")
+            self.dock.controller.populate_filter_values("decodes")
             QMessageBox.information(
                 self.tab_widget, "Collision Analytics", f"Imported:\n{path}"
             )

@@ -14,4 +14,4 @@
 
 ## Install (dev)
 1. Zip the `collision_analytics` folder.
-2. In QGIS: Plugins → Manage and Install Plugins… → Install from ZIP.
+2. In QGIS: Plugins > Manage and Install Plugins... > Install from ZIP.

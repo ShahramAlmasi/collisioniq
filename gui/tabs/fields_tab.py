@@ -15,8 +15,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ...core.config import DEFAULT_FIELD_MAP, SETTINGS_FIELD_MAP_KEY
-from ...core.settings import load_json, save_json
+from ...core.config import DEFAULT_FIELD_MAP
 from .base_tab import BaseTab
 
 
@@ -69,49 +68,39 @@ class FieldsTab(BaseTab):
         root.setLayout(layout)
         self.tab_widget = root
 
-        # Load field map
-        self._load_field_map()
-
         return root
 
     def _on_field_mapping_changed(self, *_) -> None:
         """Handle field mapping changes."""
         for key, cb in self.field_selectors.items():
             name = cb.currentText().strip()
-            if name:
-                self.dock.field_map[key] = name
-
-    def _load_field_map(self) -> None:
-        """Load field map from settings."""
-        obj = load_json(self.dock.settings, SETTINGS_FIELD_MAP_KEY, None)
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                self.dock.field_map[str(k)] = str(v)
+            self.dock.controller.field_map[key] = name
 
     def _save_field_map(self) -> None:
         """Save field map to settings."""
-        save_json(self.dock.settings, SETTINGS_FIELD_MAP_KEY, self.dock.field_map)
+        self.dock.controller.save_field_map()
         QMessageBox.information(
             self.tab_widget, "Collision Analytics", "Field mapping saved."
         )
-        self.dock.refresh_from_layer()
+        self.dock.controller.refresh_from_layer()
 
     def _reset_field_map_defaults(self) -> None:
         """Reset field map to defaults."""
-        self.dock.field_map = dict(DEFAULT_FIELD_MAP)
+        self.dock.controller.field_map = dict(DEFAULT_FIELD_MAP)
+        self.populate_selectors()
         self._save_field_map()
 
     def populate_selectors(self) -> None:
         """Populate field selectors with available layer fields."""
-        if self.dock.layer is None:
+        if self.layer is None:
             return
-        names = [f.name() for f in self.dock.layer.fields()]
+        names = [f.name() for f in self.layer.fields()]
         for key, cb in self.field_selectors.items():
             cb.blockSignals(True)
             cb.clear()
             cb.addItem("")  # allow empty
             cb.addItems(names)
-            mapped = self.dock.field_map.get(key, "")
+            mapped = self.dock.controller.field_map.get(key, "")
             if mapped in names:
                 cb.setCurrentText(mapped)
             cb.blockSignals(False)

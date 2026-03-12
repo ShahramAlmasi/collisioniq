@@ -349,17 +349,6 @@ def counter_decoded(
 
     return c
 
-    for r in rows:
-        raw = r.get(field)
-        s = safe_str(raw).strip()
-        if not s:
-            if include_blank:
-                c["Unknown / blank"] += 1
-            continue
-        c[decode(s)] += 1
-
-    return c
-
 
 def validate_temporal_field(rows: List[Dict[str, Any]], date_field: Optional[str]) -> Tuple[bool, str]:
     if not date_field:

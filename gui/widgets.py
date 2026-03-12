@@ -21,7 +21,7 @@ class CheckListFilterBox(QGroupBox):
         super().__init__(title, parent)
 
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search…")
+        self.search.setPlaceholderText("Search...")
 
         self.btn_all = QPushButton("All")
         self.btn_none = QPushButton("None")
